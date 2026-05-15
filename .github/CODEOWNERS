@@ -1,0 +1,21 @@
+# CODEOWNERS for TransAfrik repository
+
+# Fallback: the owner team reviews everything
+*       @transafrik/owners
+
+# Security and Infrastructure
+/middleware.ts          @transafrik/security
+/next.config.ts         @transafrik/security
+/.github/               @transafrik/devops
+/supabase/migrations/   @transafrik/db-admins
+/lib/encryption.ts      @transafrik/security
+
+# Core Configuration
+/package.json           @transafrik/core
+/tailwind.config.ts     @transafrik/design
+/app/globals.css        @transafrik/design
+
+# Domains
+/app/(auth)/            @transafrik/auth
+/app/(dashboard)/       @transafrik/product
+/components/ui/         @transafrik/design
