@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Toaster } from 'sonner'
 import './globals.css'
+import { ConsentBanner } from '@/components/rgpd/ConsentBanner'
 
 export const metadata: Metadata = {
   title: {
@@ -52,6 +53,7 @@ export default function RootLayout({
       </head>
       <body className="font-dmsans bg-bg-base text-text-primary antialiased">
         {children}
+        <ConsentBanner />
         <Toaster
           position="top-right"
           toastOptions={{
