@@ -1,0 +1,16 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Vercel handles the actual deployment, this is just to trigger or notify if needed.
+      # Usually, Vercel connects directly to GitHub.
+      - name: Deploy Placeholder
+        run: echo "Vercel automatically deploys pushes to main"
