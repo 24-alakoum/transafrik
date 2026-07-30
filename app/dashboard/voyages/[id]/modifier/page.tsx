@@ -1,28 +1,39 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 import { voyageSchema, type VoyageInput } from '@/lib/validations/voyage'
-import { createVoyageAction } from '../actions'
-import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Save } from 'lucide-react'
+import { updateVoyageAction } from '../../actions'
+import { ArrowLeft, Save, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { useClients, useCamions, useChauffeurs } from '@/lib/queries/hooks'
+import { useClients, useCamions, useChauffeurs, useVoyage } from '@/lib/queries/hooks'
+import { queryKeys } from '@/lib/queries/keys'
+import { Modal } from '@/components/ui/Modal'
+import { deleteVoyageAction } from '../../actions'
 
-export default function NouveauVoyagePage() {
+export default function ModifierVoyagePage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params?.id as string
+  const queryClient = useQueryClient()
   const [isPending, startTransition] = React.useTransition()
-  
-  // Fetching data via React Query hooks (which use the fixed API routes)
-  const { data: clientsData } = useClients()
-  const { data: trucksData } = useCamions({ status: 'available' })
-  const { data: driversData } = useChauffeurs({ status: 'available' })
+  const [isDeleting, setIsDeleting] = React.useState(false)
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
 
+  // Fetching single voyage and options
+  const { data: tripData, isLoading: isLoadingTrip } = useVoyage(id)
+  const { data: clientsData } = useClients()
+  const { data: trucksData } = useCamions()
+  const { data: driversData } = useChauffeurs()
+
+  const trip = tripData?.data
   const clients = clientsData?.data || []
   const trucks = trucksData?.data || []
   const drivers = driversData?.data || []
@@ -33,15 +44,42 @@ export default function NouveauVoyagePage() {
     setError,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<VoyageInput>({
     resolver: zodResolver(voyageSchema) as any,
     defaultValues: {
       status: 'draft',
       revenue_fcfa: 0,
-      cargo_weight_kg: 0
-    }
+      cargo_weight_kg: 0,
+    },
   })
+
+  // Pre-fill form when trip data is loaded
+  React.useEffect(() => {
+    if (trip) {
+      reset({
+        origin: trip.origin || '',
+        destination: trip.destination || '',
+        client_id: trip.client_id || '',
+        truck_id: trip.truck_id || '',
+        driver_id: trip.driver_id || '',
+        cargo_type: trip.cargo_type || '',
+        cargo_weight_kg: trip.cargo_weight_kg ?? 0,
+        departure_date: trip.departure_date || '',
+        port_arrival_date: trip.port_arrival_date || '',
+        port_departure_date: trip.port_departure_date || '',
+        arrival_date: trip.arrival_date || '',
+        aller_days: trip.aller_days ?? undefined,
+        retour_days: trip.retour_days ?? undefined,
+        revenue_fcfa: trip.revenue_fcfa ?? 0,
+        frais_aller_fcfa: trip.frais_aller_fcfa ?? 0,
+        frais_retour_fcfa: trip.frais_retour_fcfa ?? 0,
+        status: trip.status || 'draft',
+        notes: trip.notes || '',
+      })
+    }
+  }, [trip, reset])
 
   const dep = watch('departure_date')
   const pArr = watch('port_arrival_date')
@@ -64,14 +102,13 @@ export default function NouveauVoyagePage() {
 
   const onSubmit = (data: VoyageInput) => {
     startTransition(async () => {
-      // Nettoyage des chaînes vides pour les UUIDs
       const payload = { ...data }
       if (!payload.client_id) payload.client_id = null
       if (!payload.truck_id) payload.truck_id = null
       if (!payload.driver_id) payload.driver_id = null
 
-      const result = await createVoyageAction(payload)
-      
+      const result = await updateVoyageAction(id, payload)
+
       if (!result.success && result.error) {
         if ('_global' in result.error) {
           toast.error(result.error._global)
@@ -81,31 +118,79 @@ export default function NouveauVoyagePage() {
           })
         }
       } else if (result.success) {
-        toast.success('Voyage créé avec succès')
-        router.push(`/dashboard/voyages/${result.tripId}`)
+        toast.success('Voyage mis à jour avec succès')
+        queryClient.invalidateQueries({ queryKey: queryKeys.voyages.all() })
+        router.push(`/dashboard/voyages/${id}`)
       }
     })
   }
 
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    const result = await deleteVoyageAction(id)
+    setIsDeleting(false)
+
+    if (result.success) {
+      toast.success('Voyage supprimé avec succès')
+      queryClient.invalidateQueries({ queryKey: queryKeys.voyages.all() })
+      router.push('/dashboard/voyages')
+    } else {
+      toast.error(result.error || 'Erreur lors de la suppression')
+    }
+  }
+
+  if (isLoadingTrip) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="h-8 bg-bg-card rounded-lg w-48 animate-pulse" />
+        <TableSkeleton rows={8} cols={2} />
+      </div>
+    )
+  }
+
+  if (!trip) {
+    return (
+      <div className="max-w-4xl mx-auto py-12 text-center">
+        <h2 className="text-xl font-bold text-text-primary">Voyage introuvable</h2>
+        <p className="text-text-secondary mt-2">Le voyage que vous essayez d'éditer n'existe pas.</p>
+        <Link href="/dashboard/voyages" className="mt-4 inline-block">
+          <Button variant="outline">Retour à la liste</Button>
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/voyages">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-syne font-bold text-text-primary">Nouveau Voyage</h1>
-          <p className="text-text-secondary text-sm">Créez un nouveau dossier d'expédition</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href={`/dashboard/voyages/${id}`}>
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-syne font-bold text-text-primary">
+              Modifier le voyage {trip.reference}
+            </h1>
+            <p className="text-text-secondary text-sm">Mettez à jour les informations du dossier d'expédition</p>
+          </div>
         </div>
+
+        <Button
+          variant="outline"
+          className="text-danger border-danger/30 hover:bg-danger/10"
+          onClick={() => setShowDeleteModal(true)}
+        >
+          <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Section Trajet */}
         <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
           <h2 className="text-lg font-syne font-semibold text-text-primary mb-4">Informations du trajet</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               {...register('origin')}
@@ -171,16 +256,17 @@ export default function NouveauVoyagePage() {
                 <option value="in_transit">En transit</option>
                 <option value="delivered">Livré</option>
                 <option value="cancelled">Annulé</option>
+                <option value="disputed">Litigieux</option>
               </select>
               {errors.status && <span className="text-danger text-xs mt-1">{errors.status.message}</span>}
             </div>
           </div>
         </div>
 
-        {/* Section Affection */}
+        {/* Section Affectations */}
         <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
           <h2 className="text-lg font-syne font-semibold text-text-primary mb-4">Affectations</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="form-control w-full">
               <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Client</span></label>
@@ -195,7 +281,7 @@ export default function NouveauVoyagePage() {
               <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Camion</span></label>
               <select {...register('truck_id')} className="select select-bordered bg-bg-surface border-border-base w-full">
                 <option value="">Sélectionner un camion</option>
-                {trucks.map(t => <option key={t.id} value={t.id}>{t.plate}</option>)}
+                {trucks.map(t => <option key={t.id} value={t.id}>{t.plate} ({t.brand || 'Sans marque'})</option>)}
               </select>
               {errors.truck_id && <span className="text-danger text-xs mt-1">{errors.truck_id.message}</span>}
             </div>
@@ -211,10 +297,10 @@ export default function NouveauVoyagePage() {
           </div>
         </div>
 
-        {/* Section Marchandise & Finance */}
+        {/* Section Marchandise & Finances */}
         <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
           <h2 className="text-lg font-syne font-semibold text-text-primary mb-4">Marchandise & Finances</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               {...register('cargo_type')}
@@ -229,7 +315,7 @@ export default function NouveauVoyagePage() {
               error={errors.cargo_weight_kg?.message}
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               {...register('revenue_fcfa')}
@@ -250,27 +336,47 @@ export default function NouveauVoyagePage() {
               error={errors.frais_retour_fcfa?.message}
             />
           </div>
-          
+
           <div className="form-control w-full">
             <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Notes & Instructions</span></label>
-            <textarea 
-              {...register('notes')} 
-              className="textarea textarea-bordered bg-bg-surface border-border-base h-24" 
+            <textarea
+              {...register('notes')}
+              className="textarea textarea-bordered bg-bg-surface border-border-base h-24"
               placeholder="Instructions pour le chauffeur..."
             />
           </div>
         </div>
 
         <div className="flex justify-end gap-3">
-          <Link href="/dashboard/voyages">
+          <Link href={`/dashboard/voyages/${id}`}>
             <Button variant="ghost" type="button">Annuler</Button>
           </Link>
           <Button type="submit" isLoading={isPending}>
             <Save className="w-4 h-4 mr-2" />
-            Créer le voyage
+            Enregistrer les modifications
           </Button>
         </div>
       </form>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Supprimer le voyage"
+        footer={
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>Annuler</Button>
+            <Button variant="outline" className="bg-danger/10 text-danger border-danger/30 hover:bg-danger/20" isLoading={isDeleting} onClick={handleDelete}>
+              Confirmer la suppression
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-text-secondary text-sm">
+          Êtes-vous sûr de vouloir supprimer le voyage <strong className="text-text-primary">{trip.reference}</strong> ?
+          Cette action est irréversible.
+        </p>
+      </Modal>
     </div>
   )
 }

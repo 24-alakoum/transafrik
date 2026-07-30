@@ -7,7 +7,7 @@ import { DRIVER_STATUSES } from '@/lib/constants'
 import { ArrowLeft, Edit, Phone, Mail, MapPin, Calendar, CreditCard, ShieldAlert, Truck, User } from 'lucide-react'
 import Link from 'next/link'
 
-export default async function ChauffeurDetailPage({ params }: { params: { id: string } }) {
+export default async function ChauffeurDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
   const supabase = await createClient()
 

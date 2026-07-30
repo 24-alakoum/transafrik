@@ -2,15 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 /**
- * GET /api/data/colis
- * Query params: q, status
+ * GET /api/data/voyages/[id]
  */
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const q = searchParams.get('q') || ''
-  const status = searchParams.get('status') || ''
-
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -28,17 +27,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Entreprise introuvable' }, { status: 403 })
     }
 
-    let query = supabase
-      .from('packages')
-      .select('*')
+    const { data, error } = await supabase
+      .from('trips')
+      .select('*, clients(id, name, phone, email), trucks(id, plate, brand), drivers(id, full_name, phone)')
+      .eq('id', id)
       .eq('company_id', userData.company_id)
-      .order('created_at', { ascending: false })
+      .single()
 
-    if (status) query = query.eq('status', status)
-    if (q) query = query.or(`reference.ilike.%${q}%,recipient_name.ilike.%${q}%,recipient_phone.ilike.%${q}%`)
-
-    const { data, error } = await query
-    if (error) throw error
+    if (error || !data) {
+      return NextResponse.json({ error: 'Voyage introuvable' }, { status: 404 })
+    }
 
     return NextResponse.json({ data })
   } catch (err: any) {

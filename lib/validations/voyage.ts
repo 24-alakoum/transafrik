@@ -4,9 +4,9 @@ import { z } from 'zod'
 export const voyageSchema = z.object({
   origin: z.string().min(2, 'Origine requise (min 2 caractères)'),
   destination: z.string().min(2, 'Destination requise (min 2 caractères)'),
-  client_id: z.string().uuid('Client invalide').optional().nullable(),
-  truck_id: z.string().uuid('Camion invalide').optional().nullable(),
-  driver_id: z.string().uuid('Chauffeur invalide').optional().nullable(),
+  client_id: z.string().uuid('Client invalide').or(z.literal('')).optional().nullable().transform(val => val === '' ? null : val),
+  truck_id: z.string().uuid('Camion invalide').or(z.literal('')).optional().nullable().transform(val => val === '' ? null : val),
+  driver_id: z.string().uuid('Chauffeur invalide').or(z.literal('')).optional().nullable().transform(val => val === '' ? null : val),
   cargo_type: z.string().optional().nullable(),
   cargo_weight_kg: z.coerce
     .number()
@@ -14,8 +14,12 @@ export const voyageSchema = z.object({
     .optional()
     .nullable(),
   cargo_desc: z.string().max(500).optional().nullable(),
-  departure_date: z.string().optional().nullable(),
-  arrival_date: z.string().optional().nullable(),
+  departure_date: z.string().optional().nullable().transform(val => val === '' ? null : val),
+  port_arrival_date: z.string().optional().nullable().transform(val => val === '' ? null : val),
+  port_departure_date: z.string().optional().nullable().transform(val => val === '' ? null : val),
+  arrival_date: z.string().optional().nullable().transform(val => val === '' ? null : val),
+  aller_days: z.coerce.number().min(0).optional().nullable(),
+  retour_days: z.coerce.number().min(0).optional().nullable(),
   revenue_fcfa: z.coerce
     .number()
     .min(0, 'Montant invalide')

@@ -35,16 +35,20 @@ export default function NouveauCamionPage() {
       
       if (!result.success && result.error) {
         if ('_global' in result.error) {
-          toast.error(result.error._global)
+          toast.error(result.error._global as string)
         } else {
-          Object.entries(result.error).forEach(([field, messages]) => {
+          const fieldErrors = result.error as Record<string, string[]>
+          Object.entries(fieldErrors).forEach(([field, messages]) => {
             setError(field as keyof CamionInput, { type: 'server', message: messages?.[0] })
           })
+          toast.error('Veuillez corriger les erreurs dans le formulaire')
         }
       } else if (result.success) {
-        toast.success('Camion créé avec succès')
-        router.push(`/dashboard/camions`)
+        toast.success('Camion créé avec succès !')
+        router.push('/dashboard/camions')
         router.refresh()
+      } else {
+        toast.error('Erreur inattendue, veuillez réessayer')
       }
     })
   }

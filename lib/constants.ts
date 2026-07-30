@@ -53,6 +53,8 @@ export const EXPENSE_CATEGORIES = {
   assurance: { label: 'Assurance', icon: 'Shield' },
   amende: { label: 'Amende', icon: 'AlertTriangle' },
   parking: { label: 'Parking', icon: 'ParkingSquare' },
+  frais_aller: { label: 'Frais Aller', icon: 'ArrowRight' },
+  frais_retour: { label: 'Frais Retour', icon: 'ArrowLeft' },
   autre: { label: 'Autre', icon: 'MoreHorizontal' },
 } as const
 

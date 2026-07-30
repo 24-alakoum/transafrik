@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge'
 import { TRIP_STATUSES } from '@/lib/constants'
 import { formatFCFA, formatDate } from '@/lib/utils'
 import { MapPin, Calendar, Truck, User, Building2, Package } from 'lucide-react'
+import { VoyageHeaderActions } from '@/components/voyages/VoyageHeaderActions'
 
 export default async function VoyageDetailsPage({
   params,
@@ -44,7 +45,11 @@ export default async function VoyageDetailsPage({
             Créé le {formatDate(trip.created_at)}
           </p>
         </div>
-        {/* Actions (Update status, Print, etc) */}
+        <VoyageHeaderActions
+          tripId={trip.id}
+          reference={trip.reference}
+          currentStatus={trip.status}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -58,20 +63,49 @@ export default async function VoyageDetailsPage({
                 <div className="flex gap-3">
                   <div className="mt-1"><MapPin className="w-5 h-5 text-accent" /></div>
                   <div>
-                    <p className="text-sm text-text-secondary font-medium">Départ</p>
+                    <p className="text-sm text-text-secondary font-medium">Départ (Bamako)</p>
                     <p className="text-text-primary font-medium">{trip.origin}</p>
                     {trip.departure_date && <p className="text-sm text-text-muted mt-1">{formatDate(trip.departure_date)}</p>}
                   </div>
                 </div>
                 <div className="ml-2.5 w-0.5 h-6 bg-border-base" />
                 <div className="flex gap-3">
+                  <div className="mt-1"><MapPin className="w-5 h-5 text-warning" /></div>
+                  <div>
+                    <p className="text-sm text-text-secondary font-medium">Arrivée au port</p>
+                    {trip.port_arrival_date ? <p className="text-sm text-text-muted mt-1">{formatDate(trip.port_arrival_date)}</p> : <p className="text-sm text-text-muted mt-1 italic">Non définie</p>}
+                  </div>
+                </div>
+                <div className="ml-2.5 w-0.5 h-6 bg-border-base" />
+                <div className="flex gap-3">
+                  <div className="mt-1"><MapPin className="w-5 h-5 text-warning" /></div>
+                  <div>
+                    <p className="text-sm text-text-secondary font-medium">Sortie du port</p>
+                    {trip.port_departure_date ? <p className="text-sm text-text-muted mt-1">{formatDate(trip.port_departure_date)}</p> : <p className="text-sm text-text-muted mt-1 italic">Non définie</p>}
+                  </div>
+                </div>
+                <div className="ml-2.5 w-0.5 h-6 bg-border-base" />
+                <div className="flex gap-3">
                   <div className="mt-1"><MapPin className="w-5 h-5 text-success" /></div>
                   <div>
-                    <p className="text-sm text-text-secondary font-medium">Arrivée</p>
+                    <p className="text-sm text-text-secondary font-medium">Retour (Bamako)</p>
                     <p className="text-text-primary font-medium">{trip.destination}</p>
                     {trip.arrival_date && <p className="text-sm text-text-muted mt-1">{formatDate(trip.arrival_date)}</p>}
                   </div>
                 </div>
+                {(trip.aller_days != null || trip.retour_days != null) && (
+                  <div className="mt-4 pt-4 border-t border-border-base flex gap-4">
+                    {trip.aller_days != null && (
+                      <p className="text-sm text-text-secondary font-medium">Aller : <span className="text-text-primary font-bold">{trip.aller_days} j</span></p>
+                    )}
+                    {trip.retour_days != null && (
+                      <p className="text-sm text-text-secondary font-medium">Retour : <span className="text-text-primary font-bold">{trip.retour_days} j</span></p>
+                    )}
+                    {(trip.aller_days != null && trip.retour_days != null) && (
+                      <p className="text-sm text-text-secondary font-medium pl-4 border-l border-border-base">Total : <span className="text-text-primary font-bold">{trip.aller_days + trip.retour_days} j</span></p>
+                    )}
+                  </div>
+                )}
               </div>
               
               <div className="bg-bg-surface rounded-xl p-4 border border-border-base">

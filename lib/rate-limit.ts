@@ -11,44 +11,57 @@ const redis = Redis.fromEnv()
 
 // ── Rate Limiters spécifiques ────────────────────────
 
+const createSafeLimiter = (limiter: Ratelimit) => {
+  return {
+    limit: async (ip: string) => {
+      try {
+        return await limiter.limit(ip);
+      } catch (e) {
+        console.warn('Redis rate limit error, bypassing for', ip);
+        return { success: true };
+      }
+    }
+  }
+}
+
 export const rateLimiters = {
   // Limiteur global pour l'API (100 requêtes / minute)
-  api: new Ratelimit({
+  api: createSafeLimiter(new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(100, '1 m'),
     analytics: true,
     prefix: '@upstash/ratelimit/api',
-  }),
+  })),
 
   // Limiteur pour l'authentification (5 tentatives / 15 minutes)
-  login: new Ratelimit({
+  login: createSafeLimiter(new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(5, '15 m'),
     analytics: true,
     prefix: '@upstash/ratelimit/login',
-  }),
+  })),
 
   // Limiteur pour l'inscription (3 inscriptions / heure)
-  register: new Ratelimit({
+  register: createSafeLimiter(new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(3, '1 h'),
     analytics: true,
     prefix: '@upstash/ratelimit/register',
-  }),
+  })),
 
   // Limiteur pour les emails (10 emails / heure / company)
-  email: new Ratelimit({
+  email: createSafeLimiter(new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(10, '1 h'),
     analytics: true,
     prefix: '@upstash/ratelimit/email',
-  }),
+  })),
 
   // Limiteur pour l'export RGPD (2 exports / 24h)
-  export: new Ratelimit({
+  export: createSafeLimiter(new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(2, '24 h'),
     analytics: true,
     prefix: '@upstash/ratelimit/export',
-  }),
+  })),
 }

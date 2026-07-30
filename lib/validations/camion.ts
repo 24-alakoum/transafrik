@@ -3,18 +3,16 @@ import { z } from 'zod'
 export const camionSchema = z.object({
   plate: z
     .string()
-    .min(3, 'Immatriculation trop courte')
-    .max(15, 'Immatriculation trop longue')
-    .regex(/^[A-Z0-9\-]{3,15}$/, 'Format invalide (ex: AB-1234-C)'),
+    .min(2, 'Immatriculation trop courte')
+    .max(20, 'Immatriculation trop longue')
+    .regex(/^[a-zA-Z0-9\s-]*$/, 'Format d\'immatriculation invalide'),
+    // Accepts any format: AB-1234-C, 12 AB 345, etc.
   brand: z.string().max(50).optional().nullable(),
   model: z.string().max(50).optional().nullable(),
-  year: z.coerce
-    .number()
-    .int()
-    .min(1980, 'Année trop ancienne')
-    .max(2030, 'Année invalide')
-    .optional()
-    .nullable(),
+  year: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? null : Number(v)),
+    z.number().int().min(1960).max(2035).nullable().optional()
+  ),
   type: z
     .enum(['camion', 'camionnette', 'remorque', 'tracteur', 'pickup'])
     .optional()

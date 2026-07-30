@@ -17,7 +17,8 @@ import {
   Bell,
   Brain,
   Ship,
-  TrendingUp
+  TrendingUp,
+  Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/useUIStore'
@@ -29,6 +30,7 @@ const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Voyages', href: '/dashboard/voyages', icon: MapIcon },
   { name: 'Camions', href: '/dashboard/camions', icon: Truck },
+  { name: 'Maintenance', href: '/dashboard/camions/maintenance', icon: Wrench },
   { name: 'Chauffeurs', href: '/dashboard/chauffeurs', icon: Users },
   { name: 'Clients', href: '/dashboard/clients', icon: Building2 },
   { name: 'Connaissements (BL)', href: '/dashboard/connaissements', icon: Ship },

@@ -60,6 +60,10 @@ export default function ConnaissementsPage() {
 
   const bls = data?.data || []
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
+  
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [statusFilter, setStatusFilter] = React.useState('all')
+  const [sortBy, setSortBy] = React.useState('date_desc')
 
   const handleDelete = async (id: string, ref: string) => {
     if (!confirm(`Supprimer le BL ${ref} et tous ses conteneurs ?`)) return
@@ -70,10 +74,62 @@ export default function ConnaissementsPage() {
     setDeletingId(null)
   }
 
+  // Rewrite getDaysRemaining to match the logic of [id]/page.tsx (Surestarie stops at pickup, Detention starts at pickup)
+  // For the list view, we just show the worst case for demurrage and detention.
+  function getBLDaysInfo(bl: any, freeDays: number, type: 'demurrage' | 'detention') {
+    if (type === 'demurrage') {
+      if (!bl.arrival_date) return null;
+      if (!bl.containers?.length) return getDaysRemaining(bl.arrival_date, freeDays);
+      let worst: number | null = null;
+      for (const c of bl.containers) {
+        const endDate = c.pickup_date ? new Date(c.pickup_date) : new Date();
+        const start = new Date(bl.arrival_date);
+        const deadline = new Date(start);
+        deadline.setDate(deadline.getDate() + freeDays);
+        const diff = Math.ceil((deadline.getTime() - endDate.getTime()) / 86400000);
+        if (worst === null || diff < worst) worst = diff;
+      }
+      return worst;
+    } else {
+      if (!bl.containers?.length) return null;
+      let worst: number | null = null;
+      for (const c of bl.containers) {
+        if (c.pickup_date) {
+          const endDate = c.return_date ? new Date(c.return_date) : new Date();
+          const start = new Date(c.pickup_date);
+          const deadline = new Date(start);
+          deadline.setDate(deadline.getDate() + freeDays);
+          const diff = Math.ceil((deadline.getTime() - endDate.getTime()) / 86400000);
+          if (worst === null || diff < worst) worst = diff;
+        }
+      }
+      return worst;
+    }
+  }
+
   const urgentBLs = bls.filter((bl: any) => {
-    const d = getDaysRemaining(bl.arrival_date, bl.free_time_demurrage_days || 3)
-    const det = getDaysRemaining(bl.arrival_date, bl.free_time_detention_days || 7)
+    const d = getBLDaysInfo(bl, bl.free_time_demurrage_days || 3, 'demurrage')
+    const det = getBLDaysInfo(bl, bl.free_time_detention_days || 7, 'detention')
     return (d !== null && d <= 3) || (det !== null && det <= 3)
+  })
+
+  let filteredBls = bls.filter((bl: any) => {
+    const matchesSearch = 
+      (bl.reference || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (bl.vessel_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (bl.clients?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (bl.port_of_discharge || '').toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = statusFilter === 'all' || bl.status === statusFilter
+    
+    return matchesSearch && matchesStatus
+  })
+
+  filteredBls.sort((a: any, b: any) => {
+    if (sortBy === 'date_desc') return new Date(b.created_at || b.arrival_date || 0).getTime() - new Date(a.created_at || a.arrival_date || 0).getTime()
+    if (sortBy === 'date_asc') return new Date(a.created_at || a.arrival_date || 0).getTime() - new Date(b.created_at || b.arrival_date || 0).getTime()
+    if (sortBy === 'ref_asc') return (a.reference || '').localeCompare(b.reference || '')
+    return 0
   })
 
   return (
@@ -100,6 +156,40 @@ export default function ConnaissementsPage() {
         </div>
       </div>
 
+      {/* Filtres et Recherche */}
+      <div className="bg-bg-card rounded-2xl border border-border-base p-4 flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <input 
+            type="text" 
+            placeholder="Rechercher par référence, navire, client..." 
+            className="input-base w-full"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-4">
+          <select 
+            className="select select-bordered bg-bg-surface border-border-base text-sm"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">Tous les statuts</option>
+            {Object.keys(BL_STATUSES).map(k => (
+              <option key={k} value={k}>{BL_STATUSES[k].label}</option>
+            ))}
+          </select>
+          <select 
+            className="select select-bordered bg-bg-surface border-border-base text-sm"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="date_desc">Plus récents d'abord</option>
+            <option value="date_asc">Plus anciens d'abord</option>
+            <option value="ref_asc">Par Référence (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
       {/* Alertes urgentes */}
       {urgentBLs.length > 0 && (
         <div className="bg-danger/10 border border-danger/20 rounded-xl p-4">
@@ -121,14 +211,11 @@ export default function ConnaissementsPage() {
       {/* Tableau */}
       {isLoading ? (
         <TableSkeleton rows={8} cols={7} />
-      ) : bls.length === 0 ? (
+      ) : filteredBls.length === 0 ? (
         <div className="bg-bg-card rounded-2xl border border-border-base p-16 text-center">
           <Ship className="w-12 h-12 mx-auto text-text-muted/30 mb-4" />
-          <p className="text-lg font-syne font-semibold text-text-primary mb-2">Aucun connaissement</p>
-          <p className="text-text-muted text-sm mb-6">Enregistrez votre premier BL pour démarrer le suivi.</p>
-          <Link href="/dashboard/connaissements/nouveau">
-            <Button><Plus className="w-4 h-4 mr-2" />Créer un BL</Button>
-          </Link>
+          <p className="text-lg font-syne font-semibold text-text-primary mb-2">Aucun connaissement trouvé</p>
+          <p className="text-text-muted text-sm mb-6">Modifiez vos filtres ou créez un nouveau BL.</p>
         </div>
       ) : (
         <div className="bg-bg-card rounded-2xl border border-border-base shadow-sm overflow-hidden">
@@ -147,10 +234,10 @@ export default function ConnaissementsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-base">
-                {bls.map((bl: any) => {
+                {filteredBls.map((bl: any) => {
                   const statusInfo = BL_STATUSES[bl.status] || { label: bl.status, color: 'default' }
-                  const demDays = getDaysRemaining(bl.arrival_date, bl.free_time_demurrage_days || 3)
-                  const detDays = getDaysRemaining(bl.arrival_date, bl.free_time_detention_days || 7)
+                  const demDays = getBLDaysInfo(bl, bl.free_time_demurrage_days || 3, 'demurrage')
+                  const detDays = getBLDaysInfo(bl, bl.free_time_detention_days || 7, 'detention')
                   const containers = bl.containers || []
                   const pending = containers.filter((c: any) => c.status !== 'retourne').length
                   const isUrgent = (demDays !== null && demDays <= 3) || (detDays !== null && detDays <= 3)

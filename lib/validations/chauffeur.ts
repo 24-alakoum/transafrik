@@ -5,7 +5,7 @@ export const chauffeurSchema = z.object({
     .string()
     .min(2, 'Le nom doit contenir au moins 2 caractères')
     .max(100),
-  phone: z.string().min(8, 'Numéro de téléphone invalide'),
+  phone: z.string().min(1, 'Téléphone requis').max(30).optional().or(z.literal('')).nullable(),
   email: z.string().email('Email invalide').optional().or(z.literal('')).nullable(),
   address: z.string().max(200).optional().nullable(),
   city: z.string().max(100).optional().nullable(),
@@ -16,12 +16,19 @@ export const chauffeurSchema = z.object({
   license_expiry: z.string().optional().nullable(),
   birth_date: z.string().optional().nullable(),
   national_id: z.string().max(50).optional().nullable(),
-  monthly_salary: z.coerce.number().min(0).default(0),
+  monthly_salary: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? 0 : Number(v)),
+    z.number().min(0).default(0)
+  ),
   emergency_contact: z.string().max(200).optional().nullable(),
   status: z
-    .enum(['available', 'on_trip', 'leave', 'inactive'])
+    .enum(['available', 'on_trip', 'on_leave', 'inactive'])
     .default('available'),
-  truck_id: z.string().uuid().optional().nullable(),
+  // truck_id: accepte vide ou UUID valide
+  truck_id: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? null : v),
+    z.string().uuid().nullable().optional()
+  ),
 })
 
 export type ChauffeurInput = z.infer<typeof chauffeurSchema>

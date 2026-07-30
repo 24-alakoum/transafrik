@@ -11,38 +11,38 @@ import { depenseSchema, type DepenseInput } from '@/lib/validations/depense'
 import { updateDepenseAction } from '../../actions'
 import { ArrowLeft, Save } from 'lucide-react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { FileUpload } from '@/components/ui/FileUpload'
+import { useVoyages, useCamions } from '@/lib/queries/hooks'
+
+const CATEGORIES = [
+  { value: 'carburant', label: 'Carburant' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'peage', label: 'Péage' },
+  { value: 'salaire', label: 'Salaire' },
+  { value: 'assurance', label: 'Assurance' },
+  { value: 'amende', label: 'Amende' },
+  { value: 'parking', label: 'Parking' },
+  { value: 'frais_aller', label: '🡒 Frais Aller (Voyage)' },
+  { value: 'frais_retour', label: '🡐 Frais Retour (Voyage)' },
+  { value: 'autre', label: 'Autre' },
+]
 
 export function EditDepenseForm({ initialData, depenseId }: { initialData: any, depenseId: string }) {
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
-  
-  const [trips, setTrips] = React.useState<any[]>([])
-  const [trucks, setTrucks] = React.useState<any[]>([])
 
-  React.useEffect(() => {
-    const fetchData = async () => {
-      const supabase = createClient()
-      const [
-        { data: tripsData },
-        { data: trucksData }
-      ] = await Promise.all([
-        supabase.from('trips').select('id, reference').order('created_at', { ascending: false }).limit(50),
-        supabase.from('trucks').select('id, plate').order('created_at', { ascending: false })
-      ])
-      
-      setTrips(tripsData || [])
-      setTrucks(trucksData || [])
-    }
-    fetchData()
-  }, [])
+  const { data: voyagesData, isLoading: loadingVoyages } = useVoyages({ pageSize: 100 })
+  const { data: camionsData, isLoading: loadingCamions } = useCamions()
+
+  const trips = voyagesData?.data || []
+  const trucks = camionsData?.data || []
 
   const {
     register,
     handleSubmit,
     setError,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<DepenseInput>({
     resolver: zodResolver(depenseSchema) as any,
@@ -55,9 +55,23 @@ export function EditDepenseForm({ initialData, depenseId }: { initialData: any, 
       truck_id: initialData.truck_id || null,
       is_reimbursed: initialData.is_reimbursed ?? false,
       receipt_url: initialData.receipt_url || '',
-      receipt_size: initialData.receipt_size || null
-    }
+      receipt_size: initialData.receipt_size || null,
+    },
   })
+
+  const selectedCategory = watch('category')
+  const selectedTripId = watch('trip_id')
+
+  React.useEffect(() => {
+    if (!selectedTripId || !['frais_aller', 'frais_retour'].includes(selectedCategory || '')) return
+    const trip = trips.find((t: any) => t.id === selectedTripId)
+    if (!trip) return
+    if (selectedCategory === 'frais_aller' && trip.frais_aller_fcfa) {
+      setValue('amount_fcfa', Number(trip.frais_aller_fcfa))
+    } else if (selectedCategory === 'frais_retour' && trip.frais_retour_fcfa) {
+      setValue('amount_fcfa', Number(trip.frais_retour_fcfa))
+    }
+  }, [selectedCategory, selectedTripId, trips, setValue])
 
   const onSubmit = (data: DepenseInput) => {
     startTransition(async () => {
@@ -66,7 +80,7 @@ export function EditDepenseForm({ initialData, depenseId }: { initialData: any, 
       if (!payload.truck_id) payload.truck_id = null
 
       const result = await updateDepenseAction(depenseId, payload)
-      
+
       if (!result.success && result.error) {
         if ('_global' in result.error) {
           toast.error(result.error._global)
@@ -82,6 +96,8 @@ export function EditDepenseForm({ initialData, depenseId }: { initialData: any, 
       }
     })
   }
+
+  const isFraisVoyage = ['frais_aller', 'frais_retour'].includes(selectedCategory || '')
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -100,25 +116,20 @@ export function EditDepenseForm({ initialData, depenseId }: { initialData: any, 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
           <h2 className="text-lg font-syne font-semibold text-text-primary mb-4">Informations générales</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="form-control w-full">
               <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Catégorie *</span></label>
               <select {...register('category')} className="select select-bordered bg-bg-surface border-border-base w-full">
-                <option value="carburant">Carburant</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="peage">Péage</option>
-                <option value="salaire">Salaire</option>
-                <option value="assurance">Assurance</option>
-                <option value="amende">Amende</option>
-                <option value="parking">Parking</option>
-                <option value="autre">Autre</option>
+                {CATEGORIES.map(c => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
               </select>
             </div>
             <Input
               {...register('amount_fcfa')}
               type="number"
-              label="Montant (FCFA) *"
+              label={`Montant (FCFA) *${isFraisVoyage ? ' — Auto depuis voyage' : ''}`}
               error={errors.amount_fcfa?.message}
             />
           </div>
@@ -137,12 +148,12 @@ export function EditDepenseForm({ initialData, depenseId }: { initialData: any, 
               </label>
             </div>
           </div>
-          
+
           <div className="form-control w-full">
             <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Description</span></label>
-            <textarea 
-              {...register('description')} 
-              className="textarea textarea-bordered bg-bg-surface border-border-base h-24" 
+            <textarea
+              {...register('description')}
+              className="textarea textarea-bordered bg-bg-surface border-border-base h-24"
               placeholder="Détails de la dépense..."
             />
           </div>
@@ -170,21 +181,40 @@ export function EditDepenseForm({ initialData, depenseId }: { initialData: any, 
         </div>
 
         <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
-          <h2 className="text-lg font-syne font-semibold text-text-primary mb-4">Affectation (Optionnel)</h2>
-          
+          <h2 className="text-lg font-syne font-semibold text-text-primary mb-2">Affectation (Optionnel)</h2>
+          {isFraisVoyage && (
+            <p className="text-xs text-accent bg-accent/10 rounded-lg px-3 py-2">
+              💡 En sélectionnant un voyage, le montant sera auto-rempli depuis les frais {selectedCategory === 'frais_aller' ? 'aller' : 'retour'} prévisionnels.
+            </p>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="form-control w-full">
               <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Lier à un voyage</span></label>
-              <select {...register('trip_id')} className="select select-bordered bg-bg-surface border-border-base w-full">
-                <option value="">Aucun voyage</option>
-                {trips.map(t => <option key={t.id} value={t.id}>{t.reference}</option>)}
+              <select
+                {...register('trip_id')}
+                disabled={loadingVoyages}
+                className="select select-bordered bg-bg-surface border-border-base w-full"
+              >
+                <option value="">{loadingVoyages ? 'Chargement...' : 'Aucun voyage'}</option>
+                {trips.map((t: any) => (
+                  <option key={t.id} value={t.id}>
+                    {t.reference} — {t.origin} → {t.destination}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="form-control w-full">
               <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Lier à un camion</span></label>
-              <select {...register('truck_id')} className="select select-bordered bg-bg-surface border-border-base w-full">
-                <option value="">Aucun camion</option>
-                {trucks.map(t => <option key={t.id} value={t.id}>{t.plate}</option>)}
+              <select
+                {...register('truck_id')}
+                disabled={loadingCamions}
+                className="select select-bordered bg-bg-surface border-border-base w-full"
+              >
+                <option value="">{loadingCamions ? 'Chargement...' : 'Aucun camion'}</option>
+                {trucks.map((t: any) => (
+                  <option key={t.id} value={t.id}>{t.plate} {t.brand ? `(${t.brand})` : ''}</option>
+                ))}
               </select>
             </div>
           </div>

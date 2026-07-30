@@ -35,16 +35,20 @@ export default function NouveauChauffeurPage() {
       
       if (!result.success && result.error) {
         if ('_global' in result.error) {
-          toast.error(result.error._global)
+          toast.error(result.error._global as string)
         } else {
-          Object.entries(result.error).forEach(([field, messages]) => {
+          const fieldErrors = result.error as Record<string, string[]>
+          Object.entries(fieldErrors).forEach(([field, messages]) => {
             setError(field as keyof ChauffeurInput, { type: 'server', message: messages?.[0] })
           })
+          toast.error('Veuillez corriger les erreurs dans le formulaire')
         }
       } else if (result.success) {
-        toast.success('Chauffeur créé avec succès')
-        router.push(`/dashboard/chauffeurs`)
+        toast.success('Chauffeur créé avec succès !')
+        router.push('/dashboard/chauffeurs')
         router.refresh()
+      } else {
+        toast.error('Erreur inattendue, veuillez réessayer')
       }
     })
   }

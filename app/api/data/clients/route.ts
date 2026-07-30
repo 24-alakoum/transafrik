@@ -8,6 +8,21 @@ export async function GET() {
   try {
     const supabase = await createClient()
 
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    const { data: userData, error: userError } = (await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()) as any
+
+    if (userError || !userData?.company_id) {
+      return NextResponse.json({ error: 'Entreprise introuvable' }, { status: 403 })
+    }
+
     const { data: clients, error } = await supabase
       .from('clients')
       .select(`
@@ -19,6 +34,7 @@ export async function GET() {
           )
         )
       `)
+      .eq('company_id', userData.company_id)
       .order('name', { ascending: true }) as any
 
     if (error) throw error

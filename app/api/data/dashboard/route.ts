@@ -9,6 +9,23 @@ export async function GET() {
   try {
     const supabase = await createClient()
 
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    const { data: userData, error: userError } = (await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()) as any
+
+    if (userError || !userData?.company_id) {
+      return NextResponse.json({ error: 'Entreprise introuvable' }, { status: 403 })
+    }
+
+    const companyId = userData.company_id
+
     const [
       { data: recentTrips },
       { count: totalTrips },
@@ -19,19 +36,22 @@ export async function GET() {
       supabase
         .from('trips')
         .select('id, reference, destination, revenue_fcfa, status, departure_date, clients(name)')
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(5) as any,
-      supabase.from('trips').select('*', { count: 'exact', head: true }),
-      supabase.from('trucks').select('*', { count: 'exact', head: true }).eq('status', 'available'),
+      supabase.from('trips').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
+      supabase.from('trucks').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'available'),
       // Revenus des 7 derniers mois
       supabase
         .from('trips')
         .select('revenue_fcfa, departure_date')
+        .eq('company_id', companyId)
         .not('revenue_fcfa', 'is', null) as any,
       // Dépenses des 7 derniers mois
       supabase
         .from('expenses')
-        .select('amount_fcfa, date') as any,
+        .select('amount_fcfa, date')
+        .eq('company_id', companyId) as any,
     ])
 
     // Agrégation mensuelle des revenus et dépenses

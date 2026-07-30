@@ -79,6 +79,9 @@ CREATE TABLE drivers (
   phone TEXT,
   email TEXT,
   license_number TEXT, -- Stocké de manière chiffrée via l'application
+  license_categories TEXT[], -- Ex: ['B', 'C', 'E']
+  license_expiry DATE,        -- Date d'expiration du permis
+  monthly_salary NUMERIC(15,2) DEFAULT 0, -- Salaire mensuel en FCFA
   national_id TEXT, -- Stocké de manière chiffrée via l'application
   birth_date DATE,
   status TEXT DEFAULT 'available' CHECK (status IN ('available', 'on_trip', 'on_leave', 'inactive')),
@@ -98,10 +101,16 @@ CREATE TABLE trips (
   truck_id UUID REFERENCES trucks(id) ON DELETE SET NULL,
   driver_id UUID REFERENCES drivers(id) ON DELETE SET NULL,
   departure_date DATE,
+  port_arrival_date DATE,
+  port_departure_date DATE,
   arrival_date DATE,
+  aller_days INTEGER,
+  retour_days INTEGER,
   cargo_type TEXT,
   cargo_weight_kg NUMERIC(10,2),
   revenue_fcfa NUMERIC(15,2) DEFAULT 0,
+  frais_aller_fcfa NUMERIC(15,2) DEFAULT 0,
+  frais_retour_fcfa NUMERIC(15,2) DEFAULT 0,
   notes TEXT,
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -432,3 +441,50 @@ CREATE POLICY "Company isolation for maintenance_alerts" ON maintenance_alerts
 
 
 
+-- 19. BILLS OF LADING (Connaissements)
+CREATE TABLE bills_of_lading (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+  reference TEXT NOT NULL,
+  vessel_name TEXT,
+  voyage_number TEXT,
+  port_of_loading TEXT,
+  port_of_discharge TEXT,
+  status TEXT DEFAULT 'en_attente' CHECK (status IN ('en_attente', 'arrive', 'en_dedouanement', 'disponible', 'livre', 'termine')),
+  eta DATE,
+  arrival_date DATE,
+  free_time_demurrage_days INTEGER DEFAULT 3,
+  free_time_detention_days INTEGER DEFAULT 7,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(company_id, reference)
+);
+
+ALTER TABLE bills_of_lading ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY ""Company isolation for bills_of_lading"" ON bills_of_lading
+  FOR ALL USING (company_id = public.auth_company_id());
+
+-- 20. CONTAINERS (Conteneurs du BL)
+CREATE TABLE containers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  bl_id UUID REFERENCES bills_of_lading(id) ON DELETE CASCADE NOT NULL,
+  container_number TEXT NOT NULL,
+  type TEXT DEFAULT '20''DC',
+  seal_number TEXT,
+  cargo_description TEXT,
+  weight_kg NUMERIC(10,2),
+  status TEXT DEFAULT 'au_port' CHECK (status IN ('au_port', 'retire', 'retourne')),
+  pickup_date DATE,
+  return_date DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE containers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY ""Company isolation for containers"" ON containers
+  FOR ALL USING (company_id = public.auth_company_id());

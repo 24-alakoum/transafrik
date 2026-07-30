@@ -7,7 +7,7 @@ export const queryKeys = {
 
   voyages: {
     all: () => ['voyages'] as const,
-    list: (filters: { page?: number; pageSize?: number; status?: string }) =>
+    list: (filters: Record<string, any> = {}) =>
       ['voyages', 'list', filters] as const,
     detail: (id: string) => ['voyages', 'detail', id] as const,
   },

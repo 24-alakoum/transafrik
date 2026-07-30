@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { decrypt } from '@/lib/encryption'
 import { EditChauffeurForm } from './EditChauffeurForm'
 
-export default async function EditChauffeurPage({ params }: { params: { id: string } }) {
+export default async function EditChauffeurPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
   const supabase = await createClient()
 

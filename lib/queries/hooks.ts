@@ -44,6 +44,13 @@ interface VoyagesFilters {
   page?: number
   pageSize?: number
   status?: string
+  q?: string
+  search?: string
+  sortField?: string
+  sortOrder?: 'asc' | 'desc'
+  clientId?: string
+  truckId?: string
+  driverId?: string
 }
 
 export function useVoyages(filters: VoyagesFilters = {}) {
@@ -51,15 +58,20 @@ export function useVoyages(filters: VoyagesFilters = {}) {
     queryKey: queryKeys.voyages.list(filters),
     queryFn: () =>
       fetchJSON<{ data: any[]; count: number; totalPages: number }>(
-        buildUrl('/api/data/voyages', {
-          page: filters.page,
-          pageSize: filters.pageSize,
-          status: filters.status,
-        })
+        buildUrl('/api/data/voyages', filters)
       ),
-    placeholderData: (prev) => prev, // Garde l'ancien résultat pendant le chargement → UX fluide
+    placeholderData: (prev) => prev,
   })
 }
+
+export function useVoyage(id: string) {
+  return useQuery({
+    queryKey: queryKeys.voyages.detail(id),
+    queryFn: () => fetchJSON<{ data: any }>(`/api/data/voyages/${id}`),
+    enabled: !!id,
+  })
+}
+
 
 // ─── Camions ─────────────────────────────────────────────────────────────────
 
@@ -151,6 +163,7 @@ export function useNotifications() {
 // ─── Colis ───────────────────────────────────────────────────────────────────
 
 interface ColisFilters {
+  [key: string]: any
   q?: string
   status?: string
 }

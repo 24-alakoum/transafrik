@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const depenseSchema = z.object({
   category: z
-    .enum(['carburant', 'maintenance', 'peage', 'salaire', 'assurance', 'amende', 'parking', 'autre'])
+    .enum(['carburant', 'maintenance', 'peage', 'salaire', 'assurance', 'amende', 'parking', 'frais_aller', 'frais_retour', 'autre'])
     .default('autre'),
   amount_fcfa: z.coerce
     .number()
@@ -17,3 +17,4 @@ export const depenseSchema = z.object({
 })
 
 export type DepenseInput = z.infer<typeof depenseSchema>
+
