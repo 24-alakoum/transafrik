@@ -16,7 +16,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [isPending, startTransition] = React.useTransition()
+  const [isPending, setIsPending] = React.useState(false)
 
   const {
     register,
@@ -24,15 +24,16 @@ export default function RegisterPage() {
     setError,
     formState: { errors },
   } = useForm<RegisterInput>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(registerSchema) as any,
     defaultValues: {
       country: 'ML',
       rgpdConsent: false
     }
   })
 
-  const onSubmit = (data: RegisterInput) => {
-    startTransition(async () => {
+  const onSubmit = async (data: RegisterInput) => {
+    setIsPending(true)
+    try {
       const result = await registerAction(data)
       
       if (!result.success && result.error) {
@@ -43,6 +44,7 @@ export default function RegisterPage() {
             setError(field as keyof RegisterInput, { type: 'server', message: messages?.[0] })
           })
         }
+        setIsPending(false)
       } else if (result.success) {
         toast.success('Compte créé avec succès !')
         
@@ -53,13 +55,19 @@ export default function RegisterPage() {
           password: data.password
         })
 
+        // On arrête le spinner avant la redirection
+        setIsPending(false)
+
         if (!loginError) {
-           router.push('/dashboard')
+          router.push('/dashboard')
         } else {
-           router.push('/login')
+          router.push('/login')
         }
       }
-    })
+    } catch {
+      toast.error('Une erreur inattendue est survenue')
+      setIsPending(false)
+    }
   }
 
   return (

@@ -23,11 +23,11 @@ export async function POST(req: Request) {
     const amount = plan.price; // Le prix en FCFA
 
     // Récupérer les infos de l'utilisateur
-    const { data: userData } = await supabase
+    const { data: userData } = (await supabase
       .from('users')
       .select('full_name, email, company_id')
       .eq('id', user.id)
-      .single();
+      .single()) as any;
 
     if (!userData) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });

@@ -20,9 +20,7 @@ export const registerSchema = z.object({
     .min(2, 'Le nom de l\'entreprise doit contenir au moins 2 caractères')
     .max(100, 'Le nom est trop long'),
   country: z
-    .enum(['ML','SN','CI','BF','NE','GN','TG','BJ','CM','GA'], {
-      errorMap: () => ({ message: 'Pays non supporté' }),
-    })
+    .enum(['ML','SN','CI','BF','NE','GN','TG','BJ','CM','GA'])
     .default('ML'),
   password: z
     .string()

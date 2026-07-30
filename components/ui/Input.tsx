@@ -27,7 +27,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             className={cn(
               'input-base',
-              icon && 'pl-10',
+              icon && '!pl-10',
               error && 'border-danger focus:border-danger text-danger',
               disabled && 'bg-bg-base cursor-not-allowed opacity-60',
               className

@@ -222,6 +222,28 @@ CREATE TABLE consent_records (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 15. PACKAGES (Colis / Tracking)
+CREATE TABLE packages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  reference TEXT NOT NULL,
+  qr_code TEXT NOT NULL,
+  recipient_name TEXT NOT NULL,
+  recipient_phone TEXT NOT NULL,
+  recipient_address TEXT,
+  description TEXT,
+  weight_kg NUMERIC(10,2),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'returned', 'lost')),
+  estimated_delivery DATE,
+  notes TEXT,
+  trip_ref TEXT,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(company_id, reference),
+  UNIQUE(company_id, qr_code)
+);
+
 -- ==========================================
 -- SÉCURITÉ - ROW LEVEL SECURITY (RLS)
 -- ==========================================
@@ -241,6 +263,7 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE data_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE consent_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE packages ENABLE ROW LEVEL SECURITY;
 
 -- Fonction utilitaire pour récupérer le company_id de l'utilisateur actuel
 CREATE OR REPLACE FUNCTION public.auth_company_id() RETURNS UUID AS $$
@@ -307,6 +330,10 @@ CREATE POLICY "Users can view their own requests" ON data_requests
 CREATE POLICY "Users can view their own consents" ON consent_records
   FOR SELECT USING (user_id = auth.uid());
 
+-- Packages
+CREATE POLICY "Company isolation for packages" ON packages
+  FOR ALL USING (company_id = public.auth_company_id());
+
 -- NOTE: Pour permettre l'insertion de l'entreprise lors du register (qui se fait via le Service Role ou avant d'avoir auth.company_id), 
 -- la politique "ALL" ou "INSERT" sera généralement bypassée par le client Supabase `createAdminClient` dans tes Server Actions.
 
@@ -317,3 +344,91 @@ CREATE POLICY "Users can view their own consents" ON consent_records
 -- 1. "receipts" (Privé)
 -- 2. "logos" (Public)
 -- 3. "exports" (Privé)
+
+
+-- 15. EXPENSE_LINES (Lignes de dépenses)
+CREATE TABLE expense_lines (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  expense_id UUID REFERENCES expenses(id) ON DELETE CASCADE NOT NULL,
+  description TEXT NOT NULL,
+  quantity NUMERIC(10,2) DEFAULT 1,
+  unit TEXT DEFAULT 'unité',
+  unit_price_fcfa NUMERIC(15,2) DEFAULT 0,
+  total_fcfa NUMERIC(15,2) DEFAULT 0,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE expense_lines ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Company isolation for expense lines" ON expense_lines
+  FOR ALL USING (
+    expense_id IN (SELECT id FROM expenses WHERE company_id = public.auth_company_id())
+  );
+
+
+-- 16. TRUCK_TIRES (Pneus des camions)
+CREATE TABLE truck_tires (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  truck_id UUID REFERENCES trucks(id) ON DELETE CASCADE NOT NULL,
+  position TEXT NOT NULL CHECK (position IN ('avant_gauche', 'avant_droit', 'arriere_gauche_exterieur', 'arriere_gauche_interieur', 'arriere_droit_exterieur', 'arriere_droit_interieur', 'secours')),
+  brand TEXT NOT NULL,
+  wear_percentage NUMERIC(5,2) DEFAULT 0.00 NOT NULL,
+  mileage_installed NUMERIC(10,2) DEFAULT 0.00 NOT NULL,
+  installed_at DATE NOT NULL DEFAULT CURRENT_DATE,
+  last_checked_at DATE NOT NULL DEFAULT CURRENT_DATE,
+  status TEXT DEFAULT 'good' CHECK (status IN ('good', 'warning', 'critical')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE truck_tires ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Company isolation for truck_tires" ON truck_tires
+  FOR ALL USING (company_id = public.auth_company_id());
+
+
+-- 17. NOTIFICATIONS (Alertes et Messages Système)
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('maintenance', 'delivery', 'payment', 'trip', 'system', 'alert')),
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  data JSONB
+);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Company isolation for notifications" ON notifications
+  FOR ALL USING (company_id = public.auth_company_id());
+
+
+-- 18. MAINTENANCE_ALERTS (Alertes de Maintenance Préventive)
+CREATE TABLE maintenance_alerts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  truck_id UUID REFERENCES trucks(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL,
+  severity TEXT NOT NULL CHECK (severity IN ('info', 'warning', 'critical')),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'cancelled')),
+  ai_generated BOOLEAN DEFAULT FALSE,
+  due_date DATE DEFAULT CURRENT_DATE,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE maintenance_alerts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Company isolation for maintenance_alerts" ON maintenance_alerts
+  FOR ALL USING (company_id = public.auth_company_id());
+
+
+
+

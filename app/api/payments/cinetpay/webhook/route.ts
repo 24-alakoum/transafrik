@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkCinetPayPayment } from '@/lib/cinetpay';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(req: Request) {
   try {
@@ -37,8 +37,8 @@ export async function POST(req: Request) {
         const expiryDate = new Date();
         expiryDate.setMonth(expiryDate.getMonth() + 1);
 
-        const { error: companyError } = await supabaseAdmin
-          .from('companies')
+        const { error: companyError } = await (supabaseAdmin
+          .from('companies') as any)
           .update({
             plan: metadata.plan,
             plan_expires_at: expiryDate.toISOString(),
@@ -51,8 +51,8 @@ export async function POST(req: Request) {
         }
 
         // Ajouter dans l'historique des abonnements / paiements
-        await supabaseAdmin
-          .from('subscriptions')
+        await (supabaseAdmin
+          .from('subscriptions') as any)
           .upsert({
             company_id: metadata.company_id,
             plan: metadata.plan,

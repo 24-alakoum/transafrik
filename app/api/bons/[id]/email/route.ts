@@ -12,11 +12,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { id } = await params
     const { emailTemplate } = await request.json()
 
-    const { data: bon } = await supabase
+    const { data: bon } = (await supabase
       .from('delivery_notes')
       .select('*, trips(clients(name, email))')
       .eq('id', id)
-      .single()
+      .single()) as any
 
     if (!bon || !bon.trips?.clients?.email) {
       return NextResponse.json({ error: "Client sans email ou bon introuvable" }, { status: 400 })
@@ -42,14 +42,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!result.success) throw new Error("Erreur Resend")
 
     // Update status to 'sent'
-    await supabase.from('delivery_notes').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', id)
+    await (supabase.from('delivery_notes') as any).update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', id)
 
     await logAudit({
       userId: user.id,
-      companyId: bon.company_id,
+      companyId: bon?.company_id,
       action: 'SEND_EMAIL',
       resource: 'delivery_notes',
-      resource_id: bon.id,
+      resourceId: bon?.id,
     })
 
     return NextResponse.json({ success: true })

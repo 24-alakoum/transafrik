@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const { data: userData } = await supabase.from('users').select('company_id').eq('id', user.id).single()
+    const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
     const companyId = userData?.company_id
 
     if (!companyId) {

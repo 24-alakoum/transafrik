@@ -36,7 +36,7 @@ export async function GET(request: Request) {
       })
 
       // Update last_login_at
-      await supabase.from('users').update({ last_login_at: new Date().toISOString() }).eq('id', session.user.id)
+      await (supabase.from('users') as any).update({ last_login_at: new Date().toISOString() }).eq('id', session.user.id)
 
       return NextResponse.redirect(`${origin}${next}`)
     }

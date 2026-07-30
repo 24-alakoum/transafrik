@@ -757,6 +757,200 @@ export type Database = {
           updated_at?: string
         }
       }
+      fuel_logs: {
+        Row: {
+          id: string
+          company_id: string
+          truck_id: string
+          trip_id: string | null
+          date: string
+          liters: number
+          price_per_liter: number | null
+          total_cost_fcfa: number | null
+          mileage_at_fill: number | null
+          station_name: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          truck_id: string
+          trip_id?: string | null
+          date: string
+          liters: number
+          price_per_liter?: number | null
+          total_cost_fcfa?: number | null
+          mileage_at_fill?: number | null
+          station_name?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          truck_id?: string
+          trip_id?: string | null
+          date?: string
+          liters?: number
+          price_per_liter?: number | null
+          total_cost_fcfa?: number | null
+          mileage_at_fill?: number | null
+          station_name?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+      }
+      gps_locations: {
+        Row: {
+          id: string
+          truck_id: string
+          company_id: string
+          trip_id: string | null
+          latitude: number
+          longitude: number
+          speed_kmh: number | null
+          heading: number | null
+          altitude_m: number | null
+          accuracy_m: number | null
+          recorded_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          truck_id: string
+          company_id: string
+          trip_id?: string | null
+          latitude: number
+          longitude: number
+          speed_kmh?: number | null
+          heading?: number | null
+          altitude_m?: number | null
+          accuracy_m?: number | null
+          recorded_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          truck_id?: string
+          company_id?: string
+          trip_id?: string | null
+          latitude?: number
+          longitude?: number
+          speed_kmh?: number | null
+          heading?: number | null
+          altitude_m?: number | null
+          accuracy_m?: number | null
+          recorded_at?: string
+          created_at?: string
+        }
+      }
+      maintenance_alerts: {
+        Row: {
+          id: string
+          company_id: string
+          truck_id: string
+          type: string
+          severity: string
+          title: string
+          description: string | null
+          due_date: string | null
+          due_mileage: number | null
+          status: string
+          ai_generated: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          truck_id: string
+          type: string
+          severity?: string
+          title: string
+          description?: string | null
+          due_date?: string | null
+          due_mileage?: number | null
+          status?: string
+          ai_generated?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          truck_id?: string
+          type?: string
+          severity?: string
+          title?: string
+          description?: string | null
+          due_date?: string | null
+          due_mileage?: number | null
+          status?: string
+          ai_generated?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      packages: {
+        Row: {
+          id: string
+          company_id: string
+          trip_id: string | null
+          qr_code: string
+          reference: string
+          description: string | null
+          weight_kg: number | null
+          recipient_name: string
+          recipient_phone: string
+          recipient_address: string | null
+          status: string
+          estimated_delivery: string | null
+          actual_delivery: string | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          trip_id?: string | null
+          qr_code: string
+          reference: string
+          description?: string | null
+          weight_kg?: number | null
+          recipient_name: string
+          recipient_phone: string
+          recipient_address?: string | null
+          status?: string
+          estimated_delivery?: string | null
+          actual_delivery?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          trip_id?: string | null
+          qr_code?: string
+          reference?: string
+          description?: string | null
+          weight_kg?: number | null
+          recipient_name?: string
+          recipient_phone?: string
+          recipient_address?: string | null
+          status?: string
+          estimated_delivery?: string | null
+          actual_delivery?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

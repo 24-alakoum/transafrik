@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatFCFA, formatDate } from '@/lib/utils'
-import { ROLES } from '@/lib/constants'
+import { USER_ROLES } from '@/lib/constants'
 import { Plus, UserX, Shield, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -8,10 +8,10 @@ import { Badge } from '@/components/ui/Badge'
 export default async function EquipePage() {
   const supabase = await createClient()
 
-  const { data: members } = await supabase
+  const { data: members } = (await supabase
     .from('users')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false })) as any
 
   return (
     <div className="space-y-6">
@@ -41,7 +41,7 @@ export default async function EquipePage() {
               {!members?.length ? (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-text-muted">Aucun membre trouvé.</td></tr>
               ) : (
-                members.map((member) => (
+                members.map((member: any) => (
                   <tr key={member.id} className={`hover:bg-bg-raised/50 ${!member.is_active ? 'opacity-60' : ''}`}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

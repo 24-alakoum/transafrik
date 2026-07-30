@@ -10,7 +10,7 @@ export async function createBonLivraisonAction(tripId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Non autorisé' }
 
-    const { data: userData } = await supabase.from('users').select('company_id').eq('id', user.id).single()
+    const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
     const companyId = userData?.company_id
     if (!companyId) return { success: false, error: 'Compagnie introuvable' }
 
@@ -19,28 +19,28 @@ export async function createBonLivraisonAction(tripId: string) {
     // La méthode recommandée avec Supabase est une fonction RPC `increment_invoice_counter(company_id)`
     
     // Fallback sans RPC:
-    const { data: company } = await supabase
+    const { data: company } = (await supabase
       .from('companies')
       .select('invoice_prefix, invoice_counter')
       .eq('id', companyId)
-      .single()
+      .single()) as any
     
     const nextCounter = (company?.invoice_counter || 0) + 1
     const prefix = company?.invoice_prefix || 'FAC'
     const reference = `${prefix}-${new Date().getFullYear()}-${nextCounter.toString().padStart(4, '0')}`
 
     // Update counter
-    await supabase.from('companies').update({ invoice_counter: nextCounter }).eq('id', companyId)
+    await (supabase.from('companies') as any).update({ invoice_counter: nextCounter }).eq('id', companyId)
 
     // Calculate totals
-    const { data: trip } = await supabase.from('trips').select('trip_lines(total_fcfa)').eq('id', tripId).single()
+    const { data: trip } = (await supabase.from('trips').select('trip_lines(total_fcfa)').eq('id', tripId).single()) as any
     const subtotal = trip?.trip_lines?.reduce((sum: number, line: any) => sum + Number(line.total_fcfa), 0) || 0
     const taxRate = 18 // Ex: 18% TVA
     const taxAmount = (subtotal * taxRate) / 100
     const total = subtotal + taxAmount
 
     // Create delivery note / invoice
-    const { data: bon, error } = await supabase
+    const { data: bon, error } = (await supabase
       .from('delivery_notes')
       .insert({
         company_id: companyId,
@@ -53,9 +53,9 @@ export async function createBonLivraisonAction(tripId: string) {
         tax_rate: taxRate,
         total_fcfa: total,
         status: 'draft'
-      })
+      } as any)
       .select('id')
-      .single()
+      .single()) as any
 
     if (error) return { success: false, error: error.message }
 
@@ -64,7 +64,7 @@ export async function createBonLivraisonAction(tripId: string) {
       companyId,
       action: 'CREATE_INVOICE',
       resource: 'delivery_notes',
-      resource_id: bon.id,
+      resourceId: bon?.id,
     })
 
     return { success: true, bonId: bon.id }

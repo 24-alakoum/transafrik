@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "cross-env NODE_OPTIONS=--max_old_space_size=4096 next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -29,6 +29,7 @@
     "recharts": "^3.8.1",
     "resend": "^6.12.3",
     "sonner": "^2.0.7",
+    "stripe": "^22.1.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.13",
@@ -36,9 +37,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query-devtools": "^5.101.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/zxcvbn": "^4.4.5",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",

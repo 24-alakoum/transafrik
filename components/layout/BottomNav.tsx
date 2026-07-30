@@ -2,15 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Truck, Users, Wallet, PlusCircle } from 'lucide-react'
+import { LayoutDashboard, Radio, Brain, Package, PlusCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const bottomNavItems = [
   { name: 'Accueil', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Camions', href: '/dashboard/camions', icon: Truck },
+  { name: 'Tracking', href: '/dashboard/tracking', icon: Radio },
   { name: 'Nouveau', href: '/dashboard/voyages/nouveau', icon: PlusCircle, isMain: true },
-  { name: 'Chauffeurs', href: '/dashboard/chauffeurs', icon: Users },
-  { name: 'Dépenses', href: '/dashboard/depenses', icon: Wallet },
+  { name: 'Colis', href: '/dashboard/colis', icon: Package },
+  { name: 'IA', href: '/dashboard/ia', icon: Brain },
 ]
 
 export function BottomNav() {

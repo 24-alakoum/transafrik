@@ -14,7 +14,7 @@ export default async function BonDetailsPage({
   const supabase = await createClient()
   const { id } = await params
 
-  const { data: bon } = await supabase
+  const { data: bon } = (await supabase
     .from('delivery_notes')
     .select(`
       *,
@@ -25,7 +25,7 @@ export default async function BonDetailsPage({
       )
     `)
     .eq('id', id)
-    .single()
+    .single()) as any
 
   if (!bon) notFound()
 
@@ -47,11 +47,14 @@ export default async function BonDetailsPage({
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" asChild>
-            <a href={`/api/bons/${bon.id}/pdf`} target="_blank" rel="noopener noreferrer">
-              <FileDown className="w-4 h-4 mr-2" /> Télécharger PDF
-            </a>
-          </Button>
+          <a
+            href={`/api/bons/${bon.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-outline border-border-base text-text-secondary hover:bg-bg-raised hover:border-border-active hover:text-text-primary no-animation font-syne font-semibold transition-all duration-200 btn-md text-sm"
+          >
+            <FileDown className="w-4 h-4 mr-2" /> Télécharger PDF
+          </a>
           <form action={`/api/bons/${bon.id}/email`} method="POST">
              {/* This would actually be a client component or server action in prod to handle state */}
              <Button variant="secondary" type="submit">

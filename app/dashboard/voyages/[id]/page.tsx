@@ -13,7 +13,7 @@ export default async function VoyageDetailsPage({
   const supabase = await createClient()
   const { id } = await params
 
-  const { data: trip } = await supabase
+  const { data: trip } = (await supabase
     .from('trips')
     .select(`
       *,
@@ -22,7 +22,7 @@ export default async function VoyageDetailsPage({
       drivers(full_name, phone)
     `)
     .eq('id', id)
-    .single()
+    .single()) as any
 
   if (!trip) {
     notFound()
@@ -121,9 +121,22 @@ export default async function VoyageDetailsPage({
             </div>
           </div>
           
-          <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm">
-             <p className="text-sm text-text-secondary font-medium mb-1">Revenu attendu</p>
-             <p className="text-2xl font-syne font-bold text-accent">{formatFCFA(trip.revenue_fcfa)}</p>
+          <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
+             <div>
+               <p className="text-sm text-text-secondary font-medium mb-1">Revenu attendu</p>
+               <p className="text-2xl font-syne font-bold text-success">{formatFCFA(trip.revenue_fcfa)}</p>
+             </div>
+             <div className="divider-dark my-2" />
+             <div className="grid grid-cols-2 gap-4">
+               <div>
+                 <p className="text-sm text-text-secondary font-medium mb-1">Frais aller (prévus)</p>
+                 <p className="font-semibold text-danger">{formatFCFA(trip.frais_aller_fcfa || 0)}</p>
+               </div>
+               <div>
+                 <p className="text-sm text-text-secondary font-medium mb-1">Frais retour (prévus)</p>
+                 <p className="font-semibold text-danger">{formatFCFA(trip.frais_retour_fcfa || 0)}</p>
+               </div>
+             </div>
           </div>
         </div>
       </div>

@@ -11,7 +11,13 @@ import {
   Wallet, 
   Settings, 
   LogOut,
-  MapIcon
+  MapIcon,
+  Radio,
+  Package,
+  Bell,
+  Brain,
+  Ship,
+  TrendingUp
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/useUIStore'
@@ -25,8 +31,16 @@ const navItems = [
   { name: 'Camions', href: '/dashboard/camions', icon: Truck },
   { name: 'Chauffeurs', href: '/dashboard/chauffeurs', icon: Users },
   { name: 'Clients', href: '/dashboard/clients', icon: Building2 },
-  { name: 'Bons de livraison', href: '/dashboard/bons', icon: FileText },
+  { name: 'Connaissements (BL)', href: '/dashboard/connaissements', icon: Ship },
   { name: 'Dépenses', href: '/dashboard/depenses', icon: Wallet },
+  { name: 'Recettes', href: '/dashboard/recettes', icon: TrendingUp },
+]
+
+const advancedNavItems = [
+  { name: 'Tracking GPS', href: '/dashboard/tracking', icon: Radio, badge: null },
+  { name: 'Colis & QR Code', href: '/dashboard/colis', icon: Package, badge: null },
+  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, badge: '3' },
+  { name: 'IA & Analyses', href: '/dashboard/ia', icon: Brain, badge: null },
 ]
 
 export function Sidebar() {
@@ -90,6 +104,33 @@ export function Sidebar() {
           })}
 
           <div className="divider-dark my-6" />
+
+          {/* Section Avancée */}
+          <p className="px-3 mb-2 text-[10px] font-bold text-text-muted uppercase tracking-widest">Avancé</p>
+          {advancedNavItems.map((item) => {
+            const isActive = pathname === item.href || (pathname.startsWith(item.href))
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "nav-item relative",
+                  isActive && "nav-item-active"
+                )}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.name}
+                {item.badge && (
+                  <span className="ml-auto w-5 h-5 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+
+          <div className="divider-dark my-4" />
           
           <Link
             href="/dashboard/parametres"

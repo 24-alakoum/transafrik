@@ -8,15 +8,19 @@ import { headers } from 'next/headers'
 
 export async function loginAction(formData: unknown) {
   try {
-    // 1. Rate limiting
     const ip = (await headers()).get('x-forwarded-for') ?? '127.0.0.1'
-    const { success } = await rateLimiters.login.limit(ip)
-    
-    if (!success) {
-      return { 
-        success: false, 
-        error: { _global: 'Trop de tentatives. Veuillez réessayer dans 15 minutes.' } 
+
+    // 1. Rate limiting — tolérant aux pannes
+    try {
+      const { success } = await rateLimiters.login.limit(ip)
+      if (!success) {
+        return { 
+          success: false, 
+          error: { _global: 'Trop de tentatives. Veuillez réessayer dans 15 minutes.' } 
+        }
       }
+    } catch (rateLimitErr) {
+      console.warn('[loginAction] Rate limiter unavailable, skipping:', rateLimitErr)
     }
 
     // 2. Validation Zod
@@ -51,11 +55,11 @@ export async function loginAction(formData: unknown) {
 
     if (data.user) {
       // Récupération de l'utilisateur pour le companyId
-      const { data: userData } = await supabase
+      const { data: userData } = (await supabase
         .from('users')
         .select('company_id')
         .eq('id', data.user.id)
-        .single()
+        .single()) as any
 
       // Log success
       await logAudit({
@@ -67,8 +71,8 @@ export async function loginAction(formData: unknown) {
       })
       
       // Update last_login_at
-      await supabase
-        .from('users')
+      await (supabase
+        .from('users') as any)
         .update({ last_login_at: new Date().toISOString() })
         .eq('id', data.user.id)
     }

@@ -20,7 +20,7 @@ interface AuditLogParams {
 export async function logAudit(params: AuditLogParams): Promise<void> {
   try {
     const supabase = await createClient()
-    await supabase.from('audit_logs').insert({
+    await (supabase as any).from('audit_logs').insert({
       user_id: params.userId,
       company_id: params.companyId,
       action: params.action,

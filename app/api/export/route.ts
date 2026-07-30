@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       { data: profile },
       { data: logs }
     ] = await Promise.all([
-      supabase.from('users').select('*').eq('id', user.id).single(),
+      (supabase.from('users').select('*').eq('id', user.id).single()) as any,
       supabase.from('audit_logs').select('*').eq('user_id', user.id).limit(100)
     ])
 

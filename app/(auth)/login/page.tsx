@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { loginSchema, type LoginInput } from '@/lib/validations/auth'
 import { loginAction } from './actions'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectPath = searchParams.get('redirect') ?? '/dashboard'
@@ -100,5 +100,13 @@ export default function LoginPage() {
         </Link>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={<div className="text-center py-12 text-text-muted">Chargement...</div>}>
+      <LoginForm />
+    </React.Suspense>
   )
 }

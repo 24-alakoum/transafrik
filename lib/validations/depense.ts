@@ -12,7 +12,7 @@ export const depenseSchema = z.object({
   trip_id: z.string().uuid().optional().nullable(),
   truck_id: z.string().uuid().optional().nullable(),
   is_reimbursed: z.boolean().default(false),
-  receipt_url: z.string().url().optional().nullable(),
+  receipt_url: z.string().url().or(z.literal('')).optional().nullable(),
   receipt_size: z.number().int().positive().optional().nullable(),
 })
 

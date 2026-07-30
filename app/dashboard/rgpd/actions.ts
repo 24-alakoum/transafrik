@@ -15,14 +15,14 @@ export async function requestDataExportAction() {
     
     // Rate limit: 2 requests per 24 hours pour l'export RGPD (simulation ici avec upstash/redis si configuré, ou on laisse passer)
     // Pour simplifier, on logue juste la requête dans data_requests
-    const { data: userData } = await supabase.from('users').select('company_id').eq('id', user.id).single()
+    const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
-    const { error } = await supabase.from('data_requests').insert({
+    const { error } = (await supabase.from('data_requests').insert({
       user_id: user.id,
       company_id: userData?.company_id,
       type: 'export',
       status: 'pending'
-    })
+    } as any)) as any
 
     if (error) throw error
 
@@ -46,15 +46,15 @@ export async function deleteAccountRequestAction() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Non autorisé' }
 
-    const { data: userData } = await supabase.from('users').select('company_id').eq('id', user.id).single()
+    const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
     const ip = (await headers()).get('x-forwarded-for') ?? '127.0.0.1'
 
-    const { error } = await supabase.from('data_requests').insert({
+    const { error } = (await supabase.from('data_requests').insert({
       user_id: user.id,
       company_id: userData?.company_id,
       type: 'deletion',
       status: 'pending'
-    })
+    } as any)) as any
 
     if (error) throw error
 

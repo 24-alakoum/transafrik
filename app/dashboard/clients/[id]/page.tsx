@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation'
 import { formatFCFA, formatDate } from '@/lib/utils'
 import { TRIP_STATUSES } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
-import { AlertTriangle, Building2, MapPin } from 'lucide-react'
+import { AlertTriangle, Building2, MapPin, Edit } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import Link from 'next/link'
 
 export default async function ClientDetailsPage({
   params,
@@ -13,7 +15,7 @@ export default async function ClientDetailsPage({
   const supabase = await createClient()
   const { id } = await params
 
-  const { data: client } = await supabase
+  const { data: client } = (await supabase
     .from('clients')
     .select(`
       *,
@@ -25,7 +27,7 @@ export default async function ClientDetailsPage({
       )
     `)
     .eq('id', id)
-    .single()
+    .single()) as any
 
   if (!client) notFound()
 
@@ -46,8 +48,25 @@ export default async function ClientDetailsPage({
                 <Building2 className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-syne font-bold text-text-primary">{client.name}</h1>
-                <p className="text-text-secondary">{client.sector || 'Secteur non spécifié'}</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-syne font-bold text-text-primary">{client.name}</h1>
+                  <Link href={`/dashboard/clients/${client.id}/editer`}>
+                    <Button variant="outline" size="sm" className="h-8 px-3">
+                      <Edit className="w-3.5 h-3.5 mr-1" /> Modifier
+                    </Button>
+                  </Link>
+                </div>
+                <p className="text-text-secondary text-sm mt-1">
+                  {client.sector || 'Secteur non spécifié'}
+                  {(client.city || client.country) && (
+                    <>
+                      {' • '}
+                      {client.city}
+                      {client.city && client.country ? ', ' : ''}
+                      {client.country}
+                    </>
+                  )}
+                </p>
               </div>
             </div>
           </div>
@@ -138,6 +157,12 @@ export default async function ClientDetailsPage({
           </div>
         </div>
       </div>
+      {client.notes && (
+        <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-2">
+          <h3 className="text-lg font-syne font-semibold text-text-primary">Notes / Observations</h3>
+          <p className="text-text-secondary text-sm whitespace-pre-wrap">{client.notes}</p>
+        </div>
+      )}
     </div>
   )
 }

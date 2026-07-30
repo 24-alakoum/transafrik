@@ -19,11 +19,11 @@ export async function createVoyageAction(formData: unknown) {
       return { success: false, error: { _global: 'Non autorisé' } }
     }
 
-    const { data: userData } = await supabase
+    const { data: userData } = (await supabase
       .from('users')
       .select('company_id')
       .eq('id', user.id)
-      .single()
+      .single()) as any
 
     if (!userData?.company_id) {
       return { success: false, error: { _global: 'Compagnie introuvable' } }
@@ -34,16 +34,16 @@ export async function createVoyageAction(formData: unknown) {
     const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase()
     const reference = `TRP-${dateStr}-${randomStr}`
 
-    const { data: trip, error } = await supabase
+    const { data: trip, error } = (await supabase
       .from('trips')
       .insert({
         ...parsed.data,
         reference,
         company_id: userData.company_id,
         created_by: user.id,
-      })
+      } as any)
       .select('id')
-      .single()
+      .single()) as any
 
     if (error) {
       return { success: false, error: { _global: error.message } }
@@ -54,10 +54,10 @@ export async function createVoyageAction(formData: unknown) {
       companyId: userData.company_id,
       action: 'CREATE_TRIP',
       resource: 'trips',
-      resource_id: trip.id,
+      resourceId: trip?.id,
     })
 
-    return { success: true, tripId: trip.id }
+    return { success: true, tripId: trip?.id }
   } catch (err) {
     console.error('[createVoyageAction]', err)
     return { success: false, error: { _global: 'Une erreur inattendue est survenue' } }
@@ -71,9 +71,9 @@ export async function deleteVoyageAction(id: string) {
 
     if (!user) return { success: false, error: 'Non autorisé' }
 
-    const { data: userData } = await supabase.from('users').select('company_id').eq('id', user.id).single()
+    const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
-    const { error } = await supabase.from('trips').delete().eq('id', id)
+    const { error } = (await supabase.from('trips').delete().eq('id', id)) as any
 
     if (error) return { success: false, error: error.message }
 
@@ -82,7 +82,7 @@ export async function deleteVoyageAction(id: string) {
       companyId: userData?.company_id ?? '',
       action: 'DELETE_TRIP',
       resource: 'trips',
-      resource_id: id,
+      resourceId: id,
     })
 
     return { success: true }

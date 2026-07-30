@@ -48,7 +48,7 @@ export default function NouveauVoyagePage() {
     setError,
     formState: { errors },
   } = useForm<VoyageInput>({
-    resolver: zodResolver(voyageSchema),
+    resolver: zodResolver(voyageSchema) as any,
     defaultValues: {
       status: 'draft',
       revenue_fcfa: 0,
@@ -167,7 +167,7 @@ export default function NouveauVoyagePage() {
         <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
           <h2 className="text-lg font-syne font-semibold text-text-primary mb-4">Marchandise & Finances</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               {...register('cargo_type')}
               label="Type de marchandise"
@@ -178,11 +178,26 @@ export default function NouveauVoyagePage() {
               type="number"
               label="Poids (kg)"
             />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               {...register('revenue_fcfa')}
               type="number"
               label="Revenu estimé (FCFA)"
               error={errors.revenue_fcfa?.message}
+            />
+            <Input
+              {...register('frais_aller_fcfa')}
+              type="number"
+              label="Frais aller prévus (FCFA)"
+              error={errors.frais_aller_fcfa?.message}
+            />
+            <Input
+              {...register('frais_retour_fcfa')}
+              type="number"
+              label="Frais retour prévus (FCFA)"
+              error={errors.frais_retour_fcfa?.message}
             />
           </div>
           

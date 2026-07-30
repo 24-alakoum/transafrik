@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next'
 
-const nextConfig: NextConfig = {
+const nextConfig: any = {
   // ── Sécurité headers (OWASP)
   async headers() {
     return [
@@ -58,8 +58,11 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  eslint: {
-    ignoreDuringBuilds: false,
+  webpack: (config: any, { dev }: any) => {
+    if (dev) {
+      config.cache = false
+    }
+    return config
   },
 }
 

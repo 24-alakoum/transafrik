@@ -34,7 +34,7 @@ export default function LandingPage() {
           {/* Subtle Glows */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-accent/10 rounded-full blur-[120px] pointer-events-none -z-10" />
           
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-syne font-bold tracking-tight mb-6">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-syne font-bold tracking-tight leading-tight mb-6">
             Gérez votre flotte de transport <br className="hidden md:block" />
             <span className="text-accent">comme un professionnel</span>
           </h1>
@@ -79,7 +79,7 @@ export default function LandingPage() {
         <section id="features" className="py-24 bg-bg-surface border-y border-border-base">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-16">
-              <h2 className="text-3xl md:text-4xl font-syne font-bold mb-4">Tout ce dont vous avez besoin</h2>
+              <h2 className="text-3xl md:text-4xl font-syne font-bold leading-tight mb-4">Tout ce dont vous avez besoin</h2>
               <p className="text-text-secondary">Une suite d'outils performants pour remplacer vos fichiers Excel et optimiser votre rentabilité.</p>
             </div>
 
@@ -104,7 +104,7 @@ export default function LandingPage() {
         {/* PRICING SECTION */}
         <section id="pricing" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-syne font-bold mb-4">Tarification Transparente</h2>
+            <h2 className="text-3xl md:text-4xl font-syne font-bold leading-tight mb-4">Tarification Transparente</h2>
             <p className="text-text-secondary">Payez en fonction de la taille de votre flotte. Aucun frais caché.</p>
           </div>
 
@@ -120,7 +120,7 @@ export default function LandingPage() {
                     Populaire
                   </div>
                 )}
-                <h3 className="text-2xl font-syne font-bold mb-2">{plan.name}</h3>
+                <h3 className="text-2xl font-syne font-bold leading-tight mb-2">{plan.name}</h3>
                 <p className="text-text-secondary text-sm mb-6">{plan.desc}</p>
                 <div className="mb-6">
                   <span className="text-4xl font-syne font-bold text-text-primary">{formatFCFA(plan.price)}</span>

@@ -19,6 +19,19 @@ export type Notification = Tables<'notifications'>
 export type ConsentRecord = Tables<'consent_records'>
 export type DataRequest = Tables<'data_requests'>
 export type Subscription = Tables<'subscriptions'>
+export type GpsLocation = Tables<'gps_locations'>
+export type Package = Tables<'packages'>
+export type MaintenanceAlert = Tables<'maintenance_alerts'>
+export type FuelLog = Tables<'fuel_logs'>
+
+// ── Types enrichis GPS / Tracking ───────────────────
+export type TruckWithLastGPS = Truck & {
+  lastGps: Pick<GpsLocation, 'latitude' | 'longitude' | 'speed_kmh' | 'recorded_at'> | null
+}
+
+export type PackageWithTrip = Package & {
+  trip: Pick<Trip, 'id' | 'reference' | 'destination'> | null
+}
 
 // ── Types enrichis (avec jointures) ─────────────────
 export type TripWithRelations = Trip & {

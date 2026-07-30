@@ -15,11 +15,11 @@ export default async function FacturationPage({
   
   if (!user) return null
 
-  const { data: company } = await supabase
+  const { data: company } = (await supabase
     .from('companies')
     .select('plan, plan_expires_at')
     .eq('id', user.user_metadata?.company_id)
-    .single()
+    .single()) as any
 
   const currentPlan = company?.plan as keyof typeof PLANS || 'trial'
   const planInfo = PLANS[currentPlan]

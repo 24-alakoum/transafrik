@@ -20,6 +20,16 @@ export const voyageSchema = z.object({
     .number()
     .min(0, 'Montant invalide')
     .default(0),
+  frais_aller_fcfa: z.coerce
+    .number()
+    .min(0, 'Montant invalide')
+    .default(0)
+    .optional(),
+  frais_retour_fcfa: z.coerce
+    .number()
+    .min(0, 'Montant invalide')
+    .default(0)
+    .optional(),
   status: z
     .enum(['draft', 'loading', 'in_transit', 'delivered', 'cancelled', 'disputed'])
     .default('draft'),

@@ -13,8 +13,8 @@ export async function GET(request: Request) {
     const today = new Date().toISOString().split('T')[0]
 
     // Update all sent delivery notes that are past their due date to 'late'
-    const { data, error } = await supabaseAdmin
-      .from('delivery_notes')
+    const { data, error } = await (supabaseAdmin
+      .from('delivery_notes') as any)
       .update({ status: 'late' })
       .in('status', ['sent', 'viewed'])
       .lt('due_date', today)

@@ -12,7 +12,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const { id } = await params
 
-    const { data: bon, error } = await supabase
+    const { data: bon, error } = (await supabase
       .from('delivery_notes')
       .select(`
         *,
@@ -23,15 +23,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         )
       `)
       .eq('id', id)
-      .single()
+      .single()) as any
 
     if (error || !bon) return NextResponse.json({ error: 'Bon introuvable' }, { status: 404 })
 
-    const { data: company } = await supabase
+    const { data: company } = (await supabase
       .from('companies')
       .select('*')
       .eq('id', bon.company_id)
-      .single()
+      .single()) as any
 
     const stream = await renderToStream(<BonPDF bon={bon} company={company} />)
     
@@ -43,10 +43,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     await logAudit({
       userId: user.id,
-      companyId: bon.company_id,
+      companyId: bon?.company_id,
       action: 'GENERATE_PDF',
       resource: 'delivery_notes',
-      resource_id: bon.id,
+      resourceId: bon?.id,
     })
 
     return new NextResponse(stream as any, { headers })

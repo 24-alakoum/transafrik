@@ -11,7 +11,7 @@ export async function inviteUserAction(email: string, role: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Non autorisé' }
 
-    const { data: currentUser } = await supabase.from('users').select('company_id, role').eq('id', user.id).single()
+    const { data: currentUser } = (await supabase.from('users').select('company_id, role').eq('id', user.id).single()) as any
     if (currentUser?.role !== 'owner' && currentUser?.role !== 'admin') {
       return { success: false, error: 'Droits insuffisants' }
     }
@@ -51,7 +51,7 @@ export async function inviteUserAction(email: string, role: string) {
 
     await logAudit({
       userId: user.id,
-      companyId: currentUser.company_id,
+      companyId: currentUser?.company_id,
       action: 'INVITE_USER',
       resource: 'users',
       newData: { email, role }
@@ -69,20 +69,20 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Non autorisé' }
 
-    const { data: currentUser } = await supabase.from('users').select('company_id, role').eq('id', user.id).single()
+    const { data: currentUser } = (await supabase.from('users').select('company_id, role').eq('id', user.id).single()) as any
     if (currentUser?.role !== 'owner') {
       return { success: false, error: 'Seul le propriétaire peut changer les rôles' }
     }
 
-    const { error } = await supabase.from('users').update({ role: newRole }).eq('id', userId)
+    const { error } = await (supabase.from('users') as any).update({ role: newRole }).eq('id', userId)
     if (error) throw error
 
     await logAudit({
       userId: user.id,
-      companyId: currentUser.company_id,
+      companyId: currentUser?.company_id,
       action: 'CHANGE_ROLE',
       resource: 'users',
-      resource_id: userId,
+      resourceId: userId,
       newData: { role: newRole }
     })
 
@@ -98,21 +98,21 @@ export async function deactivateUserAction(userId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Non autorisé' }
 
-    const { data: currentUser } = await supabase.from('users').select('company_id, role').eq('id', user.id).single()
+    const { data: currentUser } = (await supabase.from('users').select('company_id, role').eq('id', user.id).single()) as any
     if (currentUser?.role !== 'owner' && currentUser?.role !== 'admin') {
       return { success: false, error: 'Droits insuffisants' }
     }
 
     // Soft delete
-    const { error } = await supabase.from('users').update({ is_active: false }).eq('id', userId)
+    const { error } = await (supabase.from('users') as any).update({ is_active: false }).eq('id', userId)
     if (error) throw error
 
     await logAudit({
       userId: user.id,
-      companyId: currentUser.company_id,
+      companyId: currentUser?.company_id,
       action: 'DEACTIVATE_USER',
       resource: 'users',
-      resource_id: userId,
+      resourceId: userId,
     })
 
     return { success: true }
