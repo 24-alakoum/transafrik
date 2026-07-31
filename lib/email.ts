@@ -1,7 +1,5 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 interface SendEmailParams {
   to: string | string[]
   subject: string
@@ -11,6 +9,13 @@ interface SendEmailParams {
 }
 
 export async function sendEmail({ to, subject, react, html, text }: SendEmailParams) {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[sendEmail] RESEND_API_KEY manquante')
+    return { success: false, error: 'Service email non configuré' }
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
+
   try {
     const data = await resend.emails.send({
       from: 'TransAfrik <ne-pas-repondre@transafrik.app>',
