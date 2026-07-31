@@ -7,22 +7,26 @@ describe('Validations', () => {
   describe('registerSchema', () => {
     it('validates a correct payload', () => {
       const payload = {
-        company_name: 'Test Corp',
-        full_name: 'John Doe',
+        companyName: 'Test Corp',
+        fullName: 'John Doe',
         email: 'test@example.com',
-        password: 'Password1234!', // Needs high zxcvbn score realistically
-        terms: true
+        password: 'Password1234!',
+        confirmPassword: 'Password1234!',
+        rgpdConsent: true,
+        country: 'ML'
       }
       expect(registerSchema.safeParse(payload).success).toBe(true)
     })
 
     it('rejects missing terms', () => {
       const payload = {
-        company_name: 'Test Corp',
-        full_name: 'John Doe',
+        companyName: 'Test Corp',
+        fullName: 'John Doe',
         email: 'test@example.com',
         password: 'Password1234!',
-        terms: false
+        confirmPassword: 'Password1234!',
+        rgpdConsent: false,
+        country: 'ML'
       }
       expect(registerSchema.safeParse(payload).success).toBe(false)
     })

@@ -120,3 +120,31 @@ export async function deactivateUserAction(userId: string) {
     return { success: false, error: 'Erreur inattendue' }
   }
 }
+
+export async function activateUserAction(userId: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Non autorisé' }
+
+    const { data: currentUser } = (await supabase.from('users').select('company_id, role').eq('id', user.id).single()) as any
+    if (currentUser?.role !== 'owner' && currentUser?.role !== 'admin') {
+      return { success: false, error: 'Droits insuffisants' }
+    }
+
+    const { error } = await (supabase.from('users') as any).update({ is_active: true }).eq('id', userId)
+    if (error) throw error
+
+    await logAudit({
+      userId: user.id,
+      companyId: currentUser?.company_id,
+      action: 'ACTIVATE_USER',
+      resource: 'users',
+      resourceId: userId,
+    })
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Erreur inattendue' }
+  }
+}

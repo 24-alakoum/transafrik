@@ -2,13 +2,14 @@
 
 import { Bell, Menu } from 'lucide-react'
 import { useUIStore } from '@/store/useUIStore'
-import { useNotifStore } from '@/store/useNotifStore'
+import { useNotifications } from '@/lib/queries/hooks'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 export function Topbar() {
   const { toggleSidebar } = useUIStore()
-  const { unreadCount } = useNotifStore()
+  const { data } = useNotifications()
+  const unreadCount = data?.data.filter((notification: any) => !notification.read_at).length ?? 0
   const pathname = usePathname()
 
   // Breadcrumb label from pathname
@@ -52,4 +53,3 @@ export function Topbar() {
     </header>
   )
 }
-

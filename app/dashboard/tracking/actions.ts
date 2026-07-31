@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { simulateRealTimeTelemetry } from '@/lib/telemetry'
 
 export async function getTrackingDataAction() {
   try {
@@ -14,10 +13,7 @@ export async function getTrackingDataAction() {
 
     if (!companyId) return { success: false, error: 'Compagnie introuvable' }
 
-    // 1. Run simulation to update GPS locations
-    await simulateRealTimeTelemetry(companyId)
-
-    // 2. Fetch all trucks
+    // Les positions sont fournies par les appareils GPS et lues sans simulation.
     const { data: trucksData } = await supabase
       .from('trucks')
       .select('id, plate, brand, model, status')

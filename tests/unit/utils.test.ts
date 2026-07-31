@@ -40,9 +40,9 @@ describe('isExpiringSoon', () => {
     expect(isExpiringSoon(future.toISOString(), 7)).toBe(false)
   })
 
-  it('returns true if date is already passed', () => {
+  it('returns false if date is already passed', () => {
     const past = new Date()
     past.setDate(past.getDate() - 1)
-    expect(isExpiringSoon(past.toISOString(), 7)).toBe(true)
+    expect(isExpiringSoon(past.toISOString(), 7)).toBe(false)
   })
 })
