@@ -5,12 +5,12 @@
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/cron/expiry-alerts",
+      "path": "/api/cron/daily-alerts?type=morning",
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/monthly-report",
-      "schedule": "0 8 1 * *"
+      "path": "/api/cron/daily-alerts?type=evening",
+      "schedule": "0 18 * * *"
     }
   ]
 }

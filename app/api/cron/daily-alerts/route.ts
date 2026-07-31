@@ -136,6 +136,20 @@ export async function GET(request: Request) {
 }
 
 async function insertNotification(supabase: any, companyId: string, type: string, title: string, body: string) {
+  const { data: preferences } = await supabase
+    .from('notification_preferences')
+    .select('maintenance_enabled, alerts_enabled, reports_enabled')
+    .eq('company_id', companyId)
+    .maybeSingle()
+
+  const isEnabled =
+    (type === 'maintenance' && preferences?.maintenance_enabled !== false) ||
+    (type === 'alert' && preferences?.alerts_enabled !== false) ||
+    (type === 'system' && preferences?.reports_enabled !== false) ||
+    !['maintenance', 'alert', 'system'].includes(type)
+
+  if (!isEnabled) return
+
   await supabase.from('notifications').insert({
     company_id: companyId,
     type,

@@ -109,7 +109,7 @@ export default function IAPage() {
       <div className="flex items-center gap-3 bg-gradient-to-r from-purple-500/10 to-accent/10 border border-purple-500/20 rounded-xl px-4 py-3 shadow-glow-sm">
         <Zap className="w-4 h-4 text-purple-400 shrink-0 animate-pulse" />
         <p className="text-xs sm:text-sm text-text-secondary">
-          Modèles d'apprentissage connectés via <strong className="text-text-primary">Supabase Realtime</strong> — Moteur IA de maintenance prédictive actif.
+          Analyse prédictive fondée sur les données de votre flotte. Actualisez-la après avoir saisi de nouveaux relevés.
         </p>
       </div>
 
@@ -201,7 +201,7 @@ export default function IAPage() {
                               <span className="font-medium text-text-primary">{m.alert}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-text-muted">Confiance IA :</span>
+                              <span className="text-xs text-text-muted">Niveau de priorité :</span>
                               <div className="flex items-center gap-1.5">
                                 <div className="w-20 h-1.5 bg-bg-raised rounded-full overflow-hidden">
                                   <div className="h-full bg-accent rounded-full" style={{ width: `${m.confidence}%` }} />

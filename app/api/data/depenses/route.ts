@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 /**
  * GET /api/data/depenses
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient()
 
@@ -23,15 +23,24 @@ export async function GET() {
       return NextResponse.json({ error: 'Entreprise introuvable' }, { status: 403 })
     }
 
-    const { data: expenses, error } = await supabase
+    const expenseId = new URL(request.url).searchParams.get('id')
+    let query = supabase
       .from('expenses')
       .select('*, trips(reference), trucks(plate)')
       .eq('company_id', userData.company_id)
       .order('date', { ascending: false }) as any
 
-    if (error) throw error
+    if (expenseId) query = query.eq('id', expenseId)
 
-    return NextResponse.json({ data: expenses || [] })
+    const [{ data: expenses, error }, { data: company, error: companyError }] = await Promise.all([
+      query,
+      supabase.from('companies').select('name, address, email, phone, nif').eq('id', userData.company_id).single(),
+    ])
+
+    if (error) throw error
+    if (companyError) throw companyError
+
+    return NextResponse.json({ data: expenses || [], company })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

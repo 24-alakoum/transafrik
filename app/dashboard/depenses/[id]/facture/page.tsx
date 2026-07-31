@@ -21,31 +21,24 @@ export default function FactureDepensePage() {
       const res = await fetch(`/api/data/depenses?id=${id}`) // Supposons que notre API supporte le filtrage
       if (!res.ok) throw new Error('Erreur')
       const json = await res.json()
-      // Si on n'a pas de endpoint par id, on filtre côté client temporairement
-      return json.data?.find((d: any) => d.id === id)
+      return { expense: json.data?.[0] ?? null, company: json.company ?? null }
     },
   })
 
-  // Dans un cas réel, vous auriez les détails de l'entreprise
-  const companyInfo = {
-    name: 'TransAfrik Logistics',
-    address: '123 Route des Hydrocarbures, Dakar',
-    email: 'contact@transafrik.sn',
-    phone: '+221 33 800 00 00',
-    ninea: '0123456789'
-  }
+  const expense = data?.expense
+  const company = data?.company
 
   React.useEffect(() => {
     // Si on veut lancer l'impression automatiquement à la fin du chargement
-    if (!isLoading && data) {
+    if (!isLoading && expense) {
       // setTimeout(() => window.print(), 500)
     }
-  }, [isLoading, data])
+  }, [isLoading, expense])
 
   if (isLoading) return <div className="p-8 text-center">Chargement de la facture...</div>
-  if (!data) return <div className="p-8 text-center text-danger">Facture introuvable</div>
+  if (!expense) return <div className="p-8 text-center text-danger">Facture introuvable</div>
 
-  const catInfo = EXPENSE_CATEGORIES[data.category as keyof typeof EXPENSE_CATEGORIES] || { label: data.category }
+  const catInfo = EXPENSE_CATEGORIES[expense.category as keyof typeof EXPENSE_CATEGORIES] || { label: expense.category }
 
   return (
     <div className="min-h-screen bg-bg-base print:bg-white text-text-primary p-4 sm:p-8">
@@ -70,8 +63,8 @@ export default function FactureDepensePage() {
           </div>
           <div className="text-right">
             <h2 className="text-xl font-bold text-gray-800 uppercase tracking-widest mb-1">Facture / Reçu</h2>
-            <p className="text-gray-500 font-mono">N° {data.id.substring(0, 8).toUpperCase()}</p>
-            <p className="text-gray-500">Date : {formatDate(data.date)}</p>
+            <p className="text-gray-500 font-mono">N° {expense.id.substring(0, 8).toUpperCase()}</p>
+            <p className="text-gray-500">Date : {formatDate(expense.date)}</p>
           </div>
         </div>
 
@@ -80,20 +73,20 @@ export default function FactureDepensePage() {
           <div>
             <h3 className="font-bold text-gray-800 mb-2">Émetteur</h3>
             <div className="text-gray-600 text-sm space-y-1">
-              <p className="font-medium text-gray-800">{companyInfo.name}</p>
-              <p>{companyInfo.address}</p>
-              <p>{companyInfo.email}</p>
-              <p>{companyInfo.phone}</p>
-              <p>NINEA: {companyInfo.ninea}</p>
+              <p className="font-medium text-gray-800">{company?.name || 'Entreprise'}</p>
+              {company?.address && <p>{company.address}</p>}
+              {company?.email && <p>{company.email}</p>}
+              {company?.phone && <p>{company.phone}</p>}
+              {company?.nif && <p>NIF : {company.nif}</p>}
             </div>
           </div>
           <div className="text-right">
             <h3 className="font-bold text-gray-800 mb-2">Imputation Interne</h3>
             <div className="text-gray-600 text-sm space-y-1">
-              {data.trips?.reference && <p>Voyage : <span className="font-medium text-gray-800">{data.trips.reference}</span></p>}
-              {data.trucks?.plate && <p>Camion : <span className="font-medium text-gray-800">{data.trucks.plate}</span></p>}
-              {!data.trips?.reference && !data.trucks?.plate && <p>Type : <span className="font-medium text-gray-800">Dépense Générale</span></p>}
-              <p>Statut : <span className="font-medium text-gray-800">{data.is_reimbursed ? 'Remboursé' : 'Non remboursé'}</span></p>
+              {expense.trips?.reference && <p>Voyage : <span className="font-medium text-gray-800">{expense.trips.reference}</span></p>}
+              {expense.trucks?.plate && <p>Camion : <span className="font-medium text-gray-800">{expense.trucks.plate}</span></p>}
+              {!expense.trips?.reference && !expense.trucks?.plate && <p>Type : <span className="font-medium text-gray-800">Dépense Générale</span></p>}
+              <p>Statut : <span className="font-medium text-gray-800">{expense.is_reimbursed ? 'Remboursé' : 'Non remboursé'}</span></p>
             </div>
           </div>
         </div>
@@ -109,9 +102,9 @@ export default function FactureDepensePage() {
           </thead>
           <tbody>
             <tr className="border-b border-gray-200">
-              <td className="py-4 px-2 text-gray-700">{data.description || 'Dépense opérationnelle'}</td>
+              <td className="py-4 px-2 text-gray-700">{expense.description || 'Dépense opérationnelle'}</td>
               <td className="py-4 px-2 text-gray-700">{catInfo.label}</td>
-              <td className="py-4 px-2 text-right font-medium text-gray-800">{formatFCFA(data.amount_fcfa)}</td>
+              <td className="py-4 px-2 text-right font-medium text-gray-800">{formatFCFA(expense.amount_fcfa)}</td>
             </tr>
           </tbody>
         </table>
@@ -121,7 +114,7 @@ export default function FactureDepensePage() {
           <div className="w-1/2">
             <div className="flex justify-between py-2 text-gray-600">
               <span>Sous-total</span>
-              <span>{formatFCFA(data.amount_fcfa)}</span>
+              <span>{formatFCFA(expense.amount_fcfa)}</span>
             </div>
             <div className="flex justify-between py-2 text-gray-600 border-b border-gray-200">
               <span>TVA (0%)</span>
@@ -129,7 +122,7 @@ export default function FactureDepensePage() {
             </div>
             <div className="flex justify-between py-3 font-bold text-xl text-gray-900 border-b-2 border-gray-800">
               <span>Total TTC</span>
-              <span>{formatFCFA(data.amount_fcfa)}</span>
+              <span>{formatFCFA(expense.amount_fcfa)}</span>
             </div>
           </div>
         </div>

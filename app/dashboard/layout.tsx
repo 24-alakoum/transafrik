@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { QueryProvider } from '@/components/providers/QueryProvider'
+import { NotificationsRealtime } from '@/components/providers/NotificationsRealtime'
 
 export default async function DashboardLayout({
   children,
@@ -19,6 +20,7 @@ export default async function DashboardLayout({
 
   return (
     <QueryProvider>
+      <NotificationsRealtime />
       <div className="min-h-screen bg-bg-base flex flex-col lg:flex-row">
         <Sidebar />
         

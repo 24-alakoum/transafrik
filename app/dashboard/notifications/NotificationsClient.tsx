@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import {
   Bell, Check, CheckCheck, Trash2, Settings, Info, Truck, Package, FileText, Wrench, AlertTriangle
 } from 'lucide-react'
@@ -190,7 +191,7 @@ export function NotificationsClient({
             <p className="text-xs text-text-muted">Gérez vos préférences d&apos;alertes et canaux</p>
           </div>
         </div>
-        <button className="text-sm text-accent hover:underline font-medium">Configurer</button>
+        <Link href="/dashboard/parametres/notifications" className="text-sm text-accent hover:underline font-medium">Configurer</Link>
       </div>
     </div>
   )

@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
 
     if (status) query = query.eq('status', status)
-    if (q) query = query.or(`reference.ilike.%${q}%,recipient_name.ilike.%${q}%,recipient_phone.ilike.%${q}%`)
+    if (q) query = query.or(`reference.ilike.%${q}%,qr_code.ilike.%${q}%,recipient_name.ilike.%${q}%,recipient_phone.ilike.%${q}%`)
 
     const { data, error } = await query
     if (error) throw error

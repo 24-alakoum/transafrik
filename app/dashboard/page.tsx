@@ -9,7 +9,7 @@ import { KpiSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { formatFCFA, formatDate } from '@/lib/utils'
 import { TRIP_STATUSES } from '@/lib/constants'
 import Link from 'next/link'
-import { ArrowRight, AlertTriangle, RefreshCw } from 'lucide-react'
+import { ArrowRight, RefreshCw } from 'lucide-react'
 
 export default function DashboardPage() {
   const { data, isLoading, isError, error, refetch, isFetching } = useDashboard()
@@ -66,15 +66,6 @@ export default function DashboardPage() {
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
         </button>
-      </div>
-
-      {/* Alerte */}
-      <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 flex items-start sm:items-center gap-3">
-        <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5 sm:mt-0" />
-        <div className="flex-1 text-sm">
-          <p className="text-warning font-medium">2 alertes requièrent votre attention</p>
-          <p className="text-warning/80">L&apos;assurance du camion AB-1234-ML expire dans 3 jours. 1 paiement client en retard.</p>
-        </div>
       </div>
 
       {/* KPIs */}

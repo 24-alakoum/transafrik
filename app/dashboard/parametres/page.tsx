@@ -10,7 +10,7 @@ export default async function ParametresPage() {
     { name: 'Entreprise', icon: Building2, href: '#entreprise', description: 'Informations, logo, et mentions' },
     { name: 'Facturation', icon: FileText, href: '/dashboard/parametres/facturation', description: 'Gérez votre abonnement Stripe' },
     { name: 'Sécurité & 2FA', icon: Lock, href: '#securite', description: 'Mot de passe, TOTP, Sessions actives' },
-    { name: 'Notifications', icon: Bell, href: '#notifications', description: 'Préférences d\'emails et alertes' },
+    { name: 'Notifications', icon: Bell, href: '/dashboard/parametres/notifications', description: 'Préférences d\'alertes et rapports' },
     { name: 'Données (RGPD)', icon: Shield, href: '/dashboard/rgpd', description: 'Confidentialité, Exports, Suppressions' },
   ]
 
@@ -39,7 +39,7 @@ export default async function ParametresPage() {
         ))}
       </div>
 
-      {/* Formulaire simplifié Entreprise pour l'exemple */}
+      {/* Profil entreprise */}
       <div id="entreprise" className="bg-bg-card rounded-2xl border border-border-base p-6 mt-8">
         <h2 className="text-lg font-syne font-semibold text-text-primary mb-6">Profil de l'entreprise</h2>
         <div className="space-y-4 max-w-lg">
@@ -54,7 +54,7 @@ export default async function ParametresPage() {
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text text-text-secondary">Nom de l'entreprise</span></label>
-            <input type="text" className="input input-bordered bg-bg-surface border-border-base w-full" defaultValue="TransAfrik SA" />
+            <input type="text" className="input input-bordered bg-bg-surface border-border-base w-full" placeholder="Nom de votre entreprise" />
           </div>
           <button className="btn btn-primary mt-2">Sauvegarder</button>
         </div>

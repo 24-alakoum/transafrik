@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useRef, useState } from 'react'
 import {
   Package, QrCode, Search, Plus, CheckCircle2,
   Truck, Clock, MapPin, Phone, User, ChevronRight,
@@ -38,24 +37,71 @@ const STATUS_CONFIG: Record<PackageStatus, { label: string; color: string; bg: s
   lost:             { label: 'Perdu',              color: 'text-danger',      bg: 'bg-danger/10',       icon: <AlertCircle className="w-3.5 h-3.5" /> },
 }
 
-const MOCK_COLIS: Colis[] = [
-  { id: '1', reference: 'COL-2024-001', qr_code: 'QR-COL-001-TRANSAFRIK', recipient_name: 'Fatoumata Diallo', recipient_phone: '+223 76 12 34 56', recipient_address: 'Dakar, Plateau', weight_kg: 12.5, status: 'in_transit', estimated_delivery: '2024-06-15', trip_ref: 'TRP-2024-001', created_at: '2024-06-10T08:00:00Z' },
-  { id: '2', reference: 'COL-2024-002', qr_code: 'QR-COL-002-TRANSAFRIK', recipient_name: 'Ibrahima Coulibaly', recipient_phone: '+221 77 98 76 54', recipient_address: 'Abidjan, Cocody', weight_kg: 5.2, status: 'delivered', estimated_delivery: '2024-06-12', trip_ref: 'TRP-2024-002', created_at: '2024-06-08T10:00:00Z' },
-  { id: '3', reference: 'COL-2024-003', qr_code: 'QR-COL-003-TRANSAFRIK', recipient_name: 'Aminata Traoré', recipient_phone: '+226 70 11 22 33', recipient_address: 'Ouagadougou, Wemtenga', weight_kg: 28.0, status: 'pending', estimated_delivery: '2024-06-18', trip_ref: null, created_at: '2024-06-11T14:00:00Z' },
-  { id: '4', reference: 'COL-2024-004', qr_code: 'QR-COL-004-TRANSAFRIK', recipient_name: 'Moussa Keïta', recipient_phone: '+224 62 55 44 33', recipient_address: 'Conakry, Kaloum', weight_kg: 8.7, status: 'out_for_delivery', estimated_delivery: '2024-06-14', trip_ref: 'TRP-2024-003', created_at: '2024-06-09T09:00:00Z' },
-  { id: '5', reference: 'COL-2024-005', qr_code: 'QR-COL-005-TRANSAFRIK', recipient_name: 'Kadiatou Barry', recipient_phone: '+225 05 30 40 50', recipient_address: 'Bamako, ACI 2000', weight_kg: 3.1, status: 'picked_up', estimated_delivery: '2024-06-20', trip_ref: 'TRP-2024-001', created_at: '2024-06-12T11:00:00Z' },
-]
-
 // ── QR Scanner Modal ──────────────────────────────────
 function QRScanModal({ onClose }: { onClose: () => void }) {
   const [scanned, setScanned] = useState(false)
   const [qrInput, setQrInput] = useState('')
+  const [found, setFound] = useState<Colis | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
+  const [cameraError, setCameraError] = useState('')
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const scanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const handleScan = () => {
-    if (qrInput.trim()) setScanned(true)
+  const handleScan = async (value = qrInput) => {
+    const code = value.trim()
+    if (!code) return
+
+    setIsSearching(true)
+    setScanned(true)
+    setFound(null)
+    try {
+      const res = await fetch(`/api/data/colis?q=${encodeURIComponent(code)}`)
+      if (!res.ok) throw new Error('Recherche impossible')
+      const { data } = await res.json()
+      setFound((data || []).find((item: Colis) => item.qr_code === code || item.reference === code) || null)
+    } finally {
+      setIsSearching(false)
+    }
   }
 
-  const found = MOCK_COLIS.find(c => c.qr_code === qrInput.trim() || c.reference === qrInput.trim())
+  const stopCamera = () => {
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current)
+    scanTimerRef.current = null
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+  }
+
+  const startCamera = async () => {
+    setCameraError('')
+    const Detector = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (source: HTMLVideoElement) => Promise<{ rawValue: string }[]> } }).BarcodeDetector
+    if (!Detector) {
+      setCameraError('Le scan caméra n’est pas pris en charge par ce navigateur. Utilisez la saisie manuelle.')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+      const detector = new Detector({ formats: ['qr_code'] })
+      scanTimerRef.current = setInterval(async () => {
+        if (!videoRef.current || videoRef.current.readyState < 2) return
+        const codes = await detector.detect(videoRef.current)
+        if (codes[0]?.rawValue) {
+          stopCamera()
+          setQrInput(codes[0].rawValue)
+          void handleScan(codes[0].rawValue)
+        }
+      }, 500)
+    } catch {
+      setCameraError('Accès caméra refusé ou indisponible. Utilisez la saisie manuelle.')
+    }
+  }
+
+  useEffect(() => stopCamera, [])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -72,6 +118,7 @@ function QRScanModal({ onClose }: { onClose: () => void }) {
         <div className="p-5 space-y-4">
           {/* Camera viewfinder */}
           <div className="relative bg-bg-surface rounded-xl aspect-square max-h-52 flex items-center justify-center border-2 border-dashed border-border-base overflow-hidden">
+            <video ref={videoRef} muted playsInline className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-4 border-2 border-accent/60 rounded-xl">
               <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-accent rounded-tl-lg" />
               <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-accent rounded-tr-lg" />
@@ -81,11 +128,12 @@ function QRScanModal({ onClose }: { onClose: () => void }) {
                 <div className="w-full h-0.5 bg-accent/70 animate-bounce" style={{ animationDuration: '2s' }} />
               </div>
             </div>
-            <div className="text-center z-10">
+            <button onClick={startCamera} className="text-center z-10 rounded-lg px-3 py-2 bg-bg-card/90 hover:bg-bg-card">
               <QrCode className="w-12 h-12 text-text-muted/40 mx-auto mb-2" />
-              <p className="text-xs text-text-muted">Caméra (nécessite permission)</p>
-            </div>
+              <p className="text-xs text-text-muted">Activer la caméra</p>
+            </button>
           </div>
+          {cameraError && <p className="text-xs text-warning">{cameraError}</p>}
 
           <div className="relative">
             <div className="absolute inset-x-0 top-0 h-px bg-border-base" />
@@ -98,7 +146,7 @@ function QRScanModal({ onClose }: { onClose: () => void }) {
               value={qrInput}
               onChange={e => setQrInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleScan()}
-              placeholder="COL-2024-001 ou QR-COL-001-TRANSAFRIK"
+              placeholder="Référence ou code QR du colis"
               className="flex-1 px-3 py-2 bg-bg-surface border border-border-base rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/60"
             />
             <button onClick={handleScan} className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">
@@ -108,7 +156,9 @@ function QRScanModal({ onClose }: { onClose: () => void }) {
 
           {/* Result */}
           {scanned && (
-            found ? (
+            isSearching ? (
+              <div className="bg-bg-raised border border-border-base rounded-xl p-4 text-sm text-text-muted">Recherche du colis...</div>
+            ) : found ? (
               <div className="bg-success/10 border border-success/30 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle2 className="w-5 h-5 text-success" />
