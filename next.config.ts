@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next'
 
-const nextConfig: any = {
+const nextConfig: NextConfig = {
   // ── Sécurité headers (OWASP)
   async headers() {
     return [
@@ -58,12 +58,9 @@ const nextConfig: any = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  webpack: (config: any, { dev }: any) => {
-    if (dev) {
-      config.cache = false
-    }
-    return config
-  },
+
+  // ── Turbopack (remplace l'ancienne config webpack)
+  turbopack: {},
 }
 
 export default nextConfig
