@@ -4,12 +4,20 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit'
 import { sendEmail } from '@/lib/email'
+import { USER_ROLES, type UserRole } from '../../../lib/constants'
+
+const SUPPORTED_ROLES = new Set(Object.keys(USER_ROLES) as UserRole[])
 
 export async function inviteUserAction(email: string, role: string) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Non autorisé' }
+
+    const normalizedRole = role.toLowerCase() as UserRole
+    if (!SUPPORTED_ROLES.has(normalizedRole)) {
+      return { success: false, error: 'Rôle non pris en charge' }
+    }
 
     const { data: currentUser } = (await supabase.from('users').select('company_id, role').eq('id', user.id).single()) as any
     if (currentUser?.role !== 'owner' && currentUser?.role !== 'admin') {
@@ -25,7 +33,7 @@ export async function inviteUserAction(email: string, role: string) {
       options: {
         data: {
           company_id: currentUser.company_id,
-          role: role
+          role: normalizedRole
         }
       }
     })
@@ -54,7 +62,7 @@ export async function inviteUserAction(email: string, role: string) {
       companyId: currentUser?.company_id,
       action: 'INVITE_USER',
       resource: 'users',
-      newData: { email, role }
+      newData: { email, role: normalizedRole }
     })
 
     return { success: true }
@@ -69,12 +77,17 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Non autorisé' }
 
+    const normalizedRole = newRole.toLowerCase() as UserRole
+    if (!SUPPORTED_ROLES.has(normalizedRole)) {
+      return { success: false, error: 'Rôle non pris en charge' }
+    }
+
     const { data: currentUser } = (await supabase.from('users').select('company_id, role').eq('id', user.id).single()) as any
     if (currentUser?.role !== 'owner') {
       return { success: false, error: 'Seul le propriétaire peut changer les rôles' }
     }
 
-    const { error } = await (supabase.from('users') as any).update({ role: newRole }).eq('id', userId)
+    const { error } = await (supabase.from('users') as any).update({ role: normalizedRole }).eq('id', userId)
     if (error) throw error
 
     await logAudit({
@@ -83,12 +96,12 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
       action: 'CHANGE_ROLE',
       resource: 'users',
       resourceId: userId,
-      newData: { role: newRole }
+      newData: { role: normalizedRole }
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: 'Erreur inattendue' }
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Erreur inattendue' }
   }
 }
 
@@ -116,8 +129,8 @@ export async function deactivateUserAction(userId: string) {
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: 'Erreur inattendue' }
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Erreur inattendue' }
   }
 }
 

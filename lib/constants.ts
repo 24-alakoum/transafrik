@@ -64,7 +64,10 @@ export type ExpenseCategory = keyof typeof EXPENSE_CATEGORIES
 export const USER_ROLES = {
   owner: { label: 'Propriétaire', level: 5 },
   admin: { label: 'Administrateur', level: 4 },
-  dispatcher: { label: 'Dispatcher', level: 3 },
+  manager: { label: 'Gestionnaire', level: 3.5 },
+  secretary: { label: 'Secrétaire', level: 3 },
+  driver: { label: 'Chauffeur', level: 2.5 },
+  dispatcher: { label: 'Dispatcher', level: 2.25 },
   accountant: { label: 'Comptable', level: 2 },
   viewer: { label: 'Lecteur', level: 1 },
 } as const
@@ -75,8 +78,9 @@ export const PERMISSION_MAP = {
   canManageBilling: ['owner'],
   canManageUsers: ['owner', 'admin'],
   canDeleteCompany: ['owner'],
-  canManageTrips: ['owner', 'admin', 'dispatcher'],
-  canManageExpenses: ['owner', 'admin', 'accountant', 'dispatcher'],
+  canViewTracking: ['owner', 'admin', 'manager', 'secretary', 'driver'],
+  canManageTrips: ['owner', 'admin', 'manager', 'secretary', 'dispatcher'],
+  canManageExpenses: ['owner', 'admin', 'manager', 'secretary', 'accountant', 'dispatcher'],
   canManageInvoices: ['owner', 'admin', 'accountant'],
 } as const
 

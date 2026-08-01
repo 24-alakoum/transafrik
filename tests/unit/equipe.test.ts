@@ -3,32 +3,39 @@ import {
   inviteUserAction,
   updateUserRoleAction,
   deactivateUserAction,
-  activateUserAction
+  activateUserAction,
 } from '../../app/dashboard/equipe/actions'
 
-// Mock Supabase Server client
-const mockSupabaseServer = {
-  auth: {
-    getUser: vi.fn(),
-  },
-  from: vi.fn(),
-}
-
-// Mock Supabase Admin client
-const mockSupabaseAdmin = {
-  auth: {
-    admin: {
-      generateLink: vi.fn(),
+const { mockSupabaseServer, mockSupabaseAdmin, mockCreateClient, mockCreateAdminClient } = vi.hoisted(() => {
+  const mockSupabaseServer = {
+    auth: {
+      getUser: vi.fn(),
     },
-  },
-}
+    from: vi.fn(),
+  }
+
+  const mockSupabaseAdmin = {
+    auth: {
+      admin: {
+        generateLink: vi.fn(),
+      },
+    },
+  }
+
+  return {
+    mockSupabaseServer,
+    mockSupabaseAdmin,
+    mockCreateClient: vi.fn(async () => mockSupabaseServer),
+    mockCreateAdminClient: vi.fn(() => mockSupabaseAdmin),
+  }
+})
 
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => Promise.resolve(mockSupabaseServer)),
+  createClient: mockCreateClient,
 }))
 
 vi.mock('@/lib/supabase/admin', () => ({
-  createAdminClient: vi.fn(() => mockSupabaseAdmin),
+  createAdminClient: mockCreateAdminClient,
 }))
 
 vi.mock('@/lib/audit', () => ({
@@ -39,9 +46,27 @@ vi.mock('@/lib/email', () => ({
   sendEmail: vi.fn(() => Promise.resolve()),
 }))
 
+function setupSupabaseChain(profile: any, updateResult: { error: null } | { error: Error } = { error: null }) {
+  const single = vi.fn().mockResolvedValueOnce({ data: profile })
+  const select = vi.fn().mockReturnValue({
+    eq: vi.fn().mockReturnValue({ single }),
+  })
+  const update = vi.fn().mockReturnValue({
+    eq: vi.fn().mockResolvedValueOnce(updateResult),
+  })
+
+  mockSupabaseServer.from.mockImplementation(() => ({ select, update }))
+  return { select, update, single }
+}
+
 describe('Equipe Server Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSupabaseServer.auth.getUser.mockReset()
+    mockSupabaseServer.from.mockReset()
+    mockSupabaseAdmin.auth.admin.generateLink.mockReset()
+    mockCreateClient.mockImplementation(async () => mockSupabaseServer)
+    mockCreateAdminClient.mockImplementation(() => mockSupabaseAdmin)
   })
 
   describe('inviteUserAction', () => {
@@ -55,11 +80,7 @@ describe('Equipe Server Actions', () => {
 
     it('returns error if current user is not owner or admin', async () => {
       mockSupabaseServer.auth.getUser.mockResolvedValueOnce({ data: { user: { id: 'user-id' } } })
-      
-      const mockSingle = vi.fn().mockResolvedValueOnce({ data: { company_id: 'comp-1', role: 'viewer' } })
-      const mockEq = vi.fn().mockReturnValue({ single: mockSingle })
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
-      mockSupabaseServer.from.mockReturnValueOnce({ select: mockSelect })
+      setupSupabaseChain({ company_id: 'comp-1', role: 'viewer' })
 
       const res = await inviteUserAction('test@example.com', 'admin')
       expect(res.success).toBe(false)
@@ -68,11 +89,7 @@ describe('Equipe Server Actions', () => {
 
     it('generates link and sends email if authorized', async () => {
       mockSupabaseServer.auth.getUser.mockResolvedValueOnce({ data: { user: { id: 'owner-id' } } })
-      
-      const mockSingle = vi.fn().mockResolvedValueOnce({ data: { company_id: 'comp-1', role: 'owner' } })
-      const mockEq = vi.fn().mockReturnValue({ single: mockSingle })
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
-      mockSupabaseServer.from.mockReturnValueOnce({ select: mockSelect })
+      setupSupabaseChain({ company_id: 'comp-1', role: 'owner' })
 
       mockSupabaseAdmin.auth.admin.generateLink.mockResolvedValueOnce({
         data: { properties: { action_link: 'http://invite-link' } },
@@ -92,20 +109,22 @@ describe('Equipe Server Actions', () => {
         },
       })
     })
+
+    it('rejects unsupported roles', async () => {
+      mockSupabaseServer.auth.getUser.mockResolvedValueOnce({ data: { user: { id: 'owner-id' } } })
+      setupSupabaseChain({ company_id: 'comp-1', role: 'owner' })
+
+      const res = await inviteUserAction('test@example.com', 'superadmin')
+      expect(res.success).toBe(false)
+      expect(res.error).toBe('Rôle non pris en charge')
+      expect(mockSupabaseAdmin.auth.admin.generateLink).not.toHaveBeenCalled()
+    })
   })
 
   describe('updateUserRoleAction', () => {
     it('updates role if user is owner', async () => {
       mockSupabaseServer.auth.getUser.mockResolvedValueOnce({ data: { user: { id: 'owner-id' } } })
-      
-      const mockSingle = vi.fn().mockResolvedValueOnce({ data: { company_id: 'comp-1', role: 'owner' } })
-      const mockEq = vi.fn().mockReturnValue({ single: mockSingle })
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
-      mockSupabaseServer.from.mockReturnValueOnce({ select: mockSelect })
-
-      const mockEqUpdate = vi.fn().mockResolvedValueOnce({ error: null })
-      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqUpdate })
-      mockSupabaseServer.from.mockReturnValueOnce({ update: mockUpdate })
+      setupSupabaseChain({ company_id: 'comp-1', role: 'owner' })
 
       const res = await updateUserRoleAction('member-id', 'admin')
       expect(res.success).toBe(true)
@@ -113,11 +132,7 @@ describe('Equipe Server Actions', () => {
 
     it('rejects role update if user is not owner', async () => {
       mockSupabaseServer.auth.getUser.mockResolvedValueOnce({ data: { user: { id: 'admin-id' } } })
-      
-      const mockSingle = vi.fn().mockResolvedValueOnce({ data: { company_id: 'comp-1', role: 'admin' } })
-      const mockEq = vi.fn().mockReturnValue({ single: mockSingle })
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
-      mockSupabaseServer.from.mockReturnValueOnce({ select: mockSelect })
+      setupSupabaseChain({ company_id: 'comp-1', role: 'admin' })
 
       const res = await updateUserRoleAction('member-id', 'viewer')
       expect(res.success).toBe(false)
@@ -128,15 +143,7 @@ describe('Equipe Server Actions', () => {
   describe('deactivateUserAction', () => {
     it('deactivates user if admin or owner', async () => {
       mockSupabaseServer.auth.getUser.mockResolvedValueOnce({ data: { user: { id: 'admin-id' } } })
-      
-      const mockSingle = vi.fn().mockResolvedValueOnce({ data: { company_id: 'comp-1', role: 'admin' } })
-      const mockEq = vi.fn().mockReturnValue({ single: mockSingle })
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
-      mockSupabaseServer.from.mockReturnValueOnce({ select: mockSelect })
-
-      const mockEqUpdate = vi.fn().mockResolvedValueOnce({ error: null })
-      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqUpdate })
-      mockSupabaseServer.from.mockReturnValueOnce({ update: mockUpdate })
+      setupSupabaseChain({ company_id: 'comp-1', role: 'admin' })
 
       const res = await deactivateUserAction('member-id')
       expect(res.success).toBe(true)
@@ -146,15 +153,7 @@ describe('Equipe Server Actions', () => {
   describe('activateUserAction', () => {
     it('activates user if admin or owner', async () => {
       mockSupabaseServer.auth.getUser.mockResolvedValueOnce({ data: { user: { id: 'admin-id' } } })
-      
-      const mockSingle = vi.fn().mockResolvedValueOnce({ data: { company_id: 'comp-1', role: 'admin' } })
-      const mockEq = vi.fn().mockReturnValue({ single: mockSingle })
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
-      mockSupabaseServer.from.mockReturnValueOnce({ select: mockSelect })
-
-      const mockEqUpdate = vi.fn().mockResolvedValueOnce({ error: null })
-      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqUpdate })
-      mockSupabaseServer.from.mockReturnValueOnce({ update: mockUpdate })
+      setupSupabaseChain({ company_id: 'comp-1', role: 'admin' })
 
       const res = await activateUserAction('member-id')
       expect(res.success).toBe(true)

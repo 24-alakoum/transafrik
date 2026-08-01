@@ -27,22 +27,24 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Voyages', href: '/dashboard/voyages', icon: MapIcon },
-  { name: 'Camions', href: '/dashboard/camions', icon: Truck },
-  { name: 'Maintenance', href: '/dashboard/camions/maintenance', icon: Wrench },
-  { name: 'Chauffeurs', href: '/dashboard/chauffeurs', icon: Users },
-  { name: 'Clients', href: '/dashboard/clients', icon: Building2 },
-  { name: 'Connaissements (BL)', href: '/dashboard/connaissements', icon: Ship },
-  { name: 'Dépenses', href: '/dashboard/depenses', icon: Wallet },
-  { name: 'Recettes', href: '/dashboard/recettes', icon: TrendingUp },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['owner', 'admin', 'manager', 'secretary', 'driver', 'accountant', 'dispatcher', 'viewer'] },
+  { name: 'Voyages', href: '/dashboard/voyages', icon: MapIcon, roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher'] },
+  { name: 'Camions', href: '/dashboard/camions', icon: Truck, roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher'] },
+  { name: 'Maintenance', href: '/dashboard/camions/maintenance', icon: Wrench, roles: ['owner', 'admin', 'manager'] },
+  { name: 'Chauffeurs', href: '/dashboard/chauffeurs', icon: Users, roles: ['owner', 'admin', 'manager', 'secretary'] },
+  { name: 'Clients', href: '/dashboard/clients', icon: Building2, roles: ['owner', 'admin', 'manager', 'secretary'] },
+  { name: 'Connaissements (BL)', href: '/dashboard/connaissements', icon: Ship, roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher'] },
+  { name: 'Dépenses', href: '/dashboard/depenses', icon: Wallet, roles: ['owner', 'admin', 'manager', 'secretary', 'accountant', 'dispatcher'] },
+  { name: 'Recettes', href: '/dashboard/recettes', icon: TrendingUp, roles: ['owner', 'admin', 'manager', 'accountant'] },
+  { name: 'Équipe', href: '/dashboard/equipe', icon: Users, roles: ['owner', 'admin'] },
+  { name: 'Admin', href: '/dashboard/admin', icon: Building2, roles: ['owner', 'admin'] },
 ]
 
 const advancedNavItems = [
-  { name: 'Tracking GPS', href: '/dashboard/tracking', icon: Radio, badge: null },
-  { name: 'Colis & QR Code', href: '/dashboard/colis', icon: Package, badge: null },
-  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, badge: '3' },
-  { name: 'IA & Analyses', href: '/dashboard/ia', icon: Brain, badge: null },
+  { name: 'Tracking GPS', href: '/dashboard/tracking', icon: Radio, badge: null, roles: ['owner', 'admin', 'manager', 'secretary', 'driver'] },
+  { name: 'Colis & QR Code', href: '/dashboard/colis', icon: Package, badge: null, roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher'] },
+  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, badge: '3', roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher', 'accountant', 'driver'] },
+  { name: 'IA & Analyses', href: '/dashboard/ia', icon: Brain, badge: null, roles: ['owner', 'admin', 'manager'] },
 ]
 
 export function Sidebar() {
@@ -50,6 +52,10 @@ export function Sidebar() {
   const router = useRouter()
   const { sidebarOpen, setSidebarOpen } = useUIStore()
   const { user, company, logout } = useAuthStore()
+  const userRole = (user?.role as string | undefined) ?? 'viewer'
+
+  const visibleNavItems = navItems.filter((item) => item.roles.includes(userRole))
+  const visibleAdvancedNavItems = advancedNavItems.filter((item) => item.roles.includes(userRole))
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -87,7 +93,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
             return (
               <Link
@@ -109,7 +115,7 @@ export function Sidebar() {
 
           {/* Section Avancée */}
           <p className="px-3 mb-2 text-[10px] font-bold text-text-muted uppercase tracking-widest">Avancé</p>
-          {advancedNavItems.map((item) => {
+          {visibleAdvancedNavItems.map((item) => {
             const isActive = pathname === item.href || (pathname.startsWith(item.href))
             return (
               <Link

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { PERMISSION_MAP } from '@/lib/constants'
 
 export async function getTrackingDataAction() {
   try {
@@ -8,10 +9,14 @@ export async function getTrackingDataAction() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Non autorisé' }
 
-    const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
+    const { data: userData } = (await supabase.from('users').select('company_id, role').eq('id', user.id).single()) as any
     const companyId = userData?.company_id
+    const userRole = userData?.role
 
     if (!companyId) return { success: false, error: 'Compagnie introuvable' }
+    if (!PERMISSION_MAP.canViewTracking.includes(userRole)) {
+      return { success: false, error: 'Accès au tracking non autorisé' }
+    }
 
     // Les positions sont fournies par les appareils GPS et lues sans simulation.
     const { data: trucksData } = await supabase

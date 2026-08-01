@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import type { UserRole } from '@/lib/constants'
 import EquipeClient, { type Member } from './EquipeClient'
 
 export default async function EquipePage() {
@@ -14,15 +15,24 @@ export default async function EquipePage() {
     )
   }
 
-  // Fetch all members of the company (filtering is handled by Supabase RLS policies)
-  const { data: members } = await supabase
+  const { data: currentProfile } = await supabase
     .from('users')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .select('company_id, role')
+    .eq('id', authUser.id)
+    .single()
+
+  const companyId = currentProfile?.company_id
+
+  let membersQuery = supabase.from('users').select('*')
+  if (companyId) {
+    membersQuery = membersQuery.eq('company_id', companyId)
+  }
+
+  const { data: members } = await membersQuery.order('created_at', { ascending: false })
 
   const memberList = (members ?? []) as unknown as Member[]
   const currentUserId = authUser.id
-  const currentUserRole = memberList.find((member) => member.id === currentUserId)?.role ?? 'viewer'
+  const currentUserRole = (currentProfile?.role as UserRole | undefined) ?? 'viewer'
 
   return (
     <EquipeClient
