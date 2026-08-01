@@ -61,6 +61,23 @@ export async function POST(req: Request) {
             stripe_sub_id: `cinetpay_${cpm_trans_id}`, // On réutilise le champ pour stocker l'ID de la transac locale
           }, { onConflict: 'company_id' });
 
+        await (supabaseAdmin
+          .from('payment_transactions') as any)
+          .insert({
+            company_id: metadata.company_id,
+            provider: 'cinetpay',
+            reference: cpm_trans_id,
+            amount: Number(paymentData.amount || 0),
+            currency: paymentData.currency || 'XOF',
+            status: 'succeeded',
+            plan: metadata.plan,
+            metadata: {
+              payment_id: cpm_trans_id,
+              company_id: metadata.company_id,
+              plan: metadata.plan,
+            },
+          });
+
       }
     }
 

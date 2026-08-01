@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { buildAdminBillingHistory, type AdminPaymentTransaction, type AdminSubscription } from '@/lib/admin'
 import { formatDate, formatFCFA } from '@/lib/utils'
 
 export default async function AdminCompanyDetailPage({
@@ -23,16 +24,21 @@ export default async function AdminCompanyDetailPage({
     redirect('/dashboard')
   }
 
-  const [{ data: company }, { data: users }, { data: subscriptions }, { data: trips }] = await Promise.all([
+  const [{ data: company }, { data: users }, { data: subscriptions }, { data: trips }, { data: paymentTransactions }] = await Promise.all([
     supabase.from('companies').select('id, name, plan, created_at').eq('id', id).single(),
     supabase.from('users').select('id, full_name, role, is_active, created_at').eq('company_id', id).order('created_at', { ascending: false }),
     supabase.from('subscriptions').select('plan, status, current_period_end').eq('company_id', id).order('created_at', { ascending: false }),
     supabase.from('trips').select('revenue_fcfa, reference, destination, status').eq('company_id', id).order('created_at', { ascending: false }),
+    supabase.from('payment_transactions').select('provider, reference, amount, currency, status, plan, created_at').eq('company_id', id).order('created_at', { ascending: false }),
   ])
 
   const companyName = company?.name || 'Entreprise sans nom'
   const subscription = (subscriptions ?? [])[0]
   const totalRevenue = (trips ?? []).reduce((sum: number, trip: any) => sum + Number(trip.revenue_fcfa || 0), 0)
+  const billingHistory = buildAdminBillingHistory({
+    subscriptions: (subscriptions ?? []) as AdminSubscription[],
+    paymentTransactions: (paymentTransactions ?? []) as AdminPaymentTransaction[],
+  })
 
   return (
     <div className="space-y-6">
@@ -98,6 +104,38 @@ export default async function AdminCompanyDetailPage({
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border-base bg-bg-card overflow-hidden">
+        <div className="p-5 border-b border-border-base">
+          <h2 className="text-lg font-syne font-semibold text-text-primary">Historique de paiement et d’abonnement</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-bg-surface text-text-secondary">
+              <tr>
+                <th className="px-4 py-3 text-left">Type</th>
+                <th className="px-4 py-3 text-left">Référence</th>
+                <th className="px-4 py-3 text-left">Plan</th>
+                <th className="px-4 py-3 text-left">Montant</th>
+                <th className="px-4 py-3 text-left">Statut</th>
+                <th className="px-4 py-3 text-left">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {billingHistory.map((entry) => (
+                <tr key={entry.id} className="border-t border-border-base/60">
+                  <td className="px-4 py-3">{entry.kind === 'payment' ? 'Paiement' : 'Abonnement'}</td>
+                  <td className="px-4 py-3">{entry.reference || '—'}</td>
+                  <td className="px-4 py-3">{entry.plan || '—'}</td>
+                  <td className="px-4 py-3">{entry.amount ? formatFCFA(entry.amount) : '—'}</td>
+                  <td className="px-4 py-3">{entry.status || '—'}</td>
+                  <td className="px-4 py-3">{entry.createdAt ? formatDate(entry.createdAt) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

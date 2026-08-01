@@ -26,6 +26,29 @@ export type AdminTrip = {
   revenue_fcfa?: number | string | null
 }
 
+export type AdminPaymentTransaction = {
+  company_id: string
+  provider?: string | null
+  reference?: string | null
+  amount?: number | string | null
+  currency?: string | null
+  status?: string | null
+  plan?: string | null
+  created_at?: string | null
+}
+
+export type AdminBillingEntry = {
+  id: string
+  companyId: string
+  kind: 'payment' | 'subscription'
+  reference?: string
+  plan?: string
+  status?: string
+  amount?: number
+  currency?: string
+  createdAt: string
+}
+
 export type AdminCompanySummary = {
   id: string
   name: string
@@ -46,6 +69,38 @@ export type AdminOverview = {
   activeSubscriptions: number
   totalRevenue: number
   companies: AdminCompanySummary[]
+}
+
+export function buildAdminBillingHistory(params: {
+  subscriptions: AdminSubscription[]
+  paymentTransactions: AdminPaymentTransaction[]
+}): AdminBillingEntry[] {
+  const subscriptions = (params.subscriptions ?? []).map((subscription) => ({
+    id: `subscription-${subscription.company_id}`,
+    companyId: subscription.company_id,
+    kind: 'subscription' as const,
+    plan: subscription.plan,
+    status: subscription.status,
+    createdAt: subscription.current_period_end || '',
+  }))
+
+  const payments = (params.paymentTransactions ?? []).map((transaction) => ({
+    id: `payment-${transaction.reference || transaction.company_id}`,
+    companyId: transaction.company_id,
+    kind: 'payment' as const,
+    reference: transaction.reference || undefined,
+    plan: transaction.plan,
+    status: transaction.status,
+    amount: Number(transaction.amount || 0),
+    currency: transaction.currency || 'XOF',
+    createdAt: transaction.created_at || '',
+  }))
+
+  return [...payments, ...subscriptions].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+    return dateA - dateB
+  })
 }
 
 export function buildAdminOverview(params: {

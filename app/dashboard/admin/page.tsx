@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { buildAdminOverview, type AdminCompany, type AdminSubscription, type AdminTrip, type AdminUser } from '@/lib/admin'
+import { buildAdminBillingHistory, buildAdminOverview, type AdminCompany, type AdminPaymentTransaction, type AdminSubscription, type AdminTrip, type AdminUser } from '@/lib/admin'
 import { formatFCFA, formatDate } from '@/lib/utils'
 
 export default async function AdminPage() {
@@ -18,19 +18,22 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
-  const [{ data: companiesData }, { data: usersData }, { data: subscriptionsData }, { data: tripsData }] = await Promise.all([
+  const [{ data: companiesData }, { data: usersData }, { data: subscriptionsData }, { data: tripsData }, { data: paymentTransactionsData }] = await Promise.all([
     supabase.from('companies').select('id, name, plan, created_at').order('created_at', { ascending: false }),
     supabase.from('users').select('id, company_id, full_name, role, is_active, created_at').order('created_at', { ascending: false }),
     supabase.from('subscriptions').select('company_id, plan, status, current_period_end').order('created_at', { ascending: false }),
     supabase.from('trips').select('company_id, revenue_fcfa').order('created_at', { ascending: false }),
+    supabase.from('payment_transactions').select('company_id, provider, reference, amount, currency, status, plan, created_at').order('created_at', { ascending: false }),
   ])
 
   const companies = (companiesData ?? []) as AdminCompany[]
   const users = (usersData ?? []) as AdminUser[]
   const subscriptions = (subscriptionsData ?? []) as AdminSubscription[]
   const trips = (tripsData ?? []) as AdminTrip[]
+  const paymentTransactions = (paymentTransactionsData ?? []) as AdminPaymentTransaction[]
 
   const overview = buildAdminOverview({ companies, users, subscriptions, trips })
+  const billingHistory = buildAdminBillingHistory({ subscriptions, paymentTransactions })
 
   const companyMap = new Map(companies.map((company) => [company.id, company.name || 'Entreprise sans nom']))
 
@@ -90,6 +93,38 @@ export default async function AdminPage() {
                   <td className="px-4 py-3">{company.activeUsers}/{company.userCount}</td>
                   <td className="px-4 py-3">{formatFCFA(company.revenue)}</td>
                   <td className="px-4 py-3">{company.createdAt ? formatDate(company.createdAt) : '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border-base bg-bg-card overflow-hidden">
+        <div className="p-5 border-b border-border-base">
+          <h2 className="text-lg font-syne font-semibold text-text-primary">Historique paiements et abonnements</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-bg-surface text-text-secondary">
+              <tr>
+                <th className="px-4 py-3 text-left">Entreprise</th>
+                <th className="px-4 py-3 text-left">Type</th>
+                <th className="px-4 py-3 text-left">Référence</th>
+                <th className="px-4 py-3 text-left">Plan</th>
+                <th className="px-4 py-3 text-left">Montant</th>
+                <th className="px-4 py-3 text-left">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {billingHistory.map((entry) => (
+                <tr key={entry.id} className="border-t border-border-base/60">
+                  <td className="px-4 py-3 font-medium text-text-primary">{companyMap.get(entry.companyId) || '—'}</td>
+                  <td className="px-4 py-3">{entry.kind === 'payment' ? 'Paiement' : 'Abonnement'}</td>
+                  <td className="px-4 py-3">{entry.reference || '—'}</td>
+                  <td className="px-4 py-3">{entry.plan || '—'}</td>
+                  <td className="px-4 py-3">{entry.amount ? formatFCFA(entry.amount) : '—'}</td>
+                  <td className="px-4 py-3">{entry.status || '—'}</td>
                 </tr>
               ))}
             </tbody>
