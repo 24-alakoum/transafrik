@@ -34,12 +34,12 @@ export default function LandingPage() {
           {/* Subtle Glows */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-accent/10 rounded-full blur-[120px] pointer-events-none -z-10" />
           
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-syne font-bold tracking-tight leading-tight mb-6">
-            Gérez votre flotte de transport <br className="hidden md:block" />
-            <span className="text-accent">comme un professionnel</span>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-syne font-bold tracking-tight leading-tight mb-6">
+            L’application mobile <br className="hidden md:block" />
+            <span className="text-accent">pour gérer votre flotte partout</span>
           </h1>
           <p className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
-            TransAfrik est le SaaS tout-en-un conçu pour les entrepreneurs africains du transport. Centralisez vos voyages, suivez vos camions, et automatisez vos bons de livraison.
+            TransAfrik est pensée mobile-first pour les opérateurs de transport : consultez vos voyages, vos clients, vos dépenses et vos paiements depuis votre téléphone, même hors ligne via une expérience installable.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/register">

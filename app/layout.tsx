@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Toaster } from 'sonner'
 import './globals.css'
 import { ConsentBanner } from '@/components/rgpd/ConsentBanner'
+import { PwaInstallPrompt } from '@/components/ui/PwaInstallPrompt'
 
 export const metadata: Metadata = {
   title: {
@@ -50,9 +51,17 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#F97316" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="TransAfrik" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
       </head>
       <body className="font-dmsans bg-bg-base text-text-primary antialiased">
         {children}
+        <PwaInstallPrompt />
         <ConsentBanner />
         <Toaster
           position="top-right"

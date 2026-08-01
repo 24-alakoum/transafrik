@@ -1,0 +1,22 @@
+import type { MetadataRoute } from 'next'
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'TransAfrik',
+    short_name: 'TransAfrik',
+    description: 'Gestion de flotte et logistique pour entrepreneurs africains',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    background_color: '#070A0E',
+    theme_color: '#F97316',
+    orientation: 'portrait',
+    icons: [
+      {
+        src: '/icon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+      },
+    ],
+  }
+}
