@@ -477,7 +477,7 @@ CREATE TABLE containers (
   seal_number TEXT,
   cargo_description TEXT,
   weight_kg NUMERIC(10,2),
-  status TEXT DEFAULT 'au_port' CHECK (status IN ('au_port', 'retire', 'retourne')),
+  status TEXT DEFAULT 'en_cours' CHECK (status IN ('en_cours', 'livre', 'vide', 'retourne')),
   pickup_date DATE,
   return_date DATE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -488,3 +488,13 @@ ALTER TABLE containers ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY ""Company isolation for containers"" ON containers
   FOR ALL USING (company_id = public.auth_company_id());
+
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON containers FOR EACH ROW EXECUTE FUNCTION update_updated_at();

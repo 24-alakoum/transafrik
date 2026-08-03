@@ -12,14 +12,7 @@ import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import { updateContainerStatusAction, updateBLStatusAction, updateBLDatesAction, deleteBLAction, updateContainerDatesAction } from '../actions'
 import Link from 'next/link'
-
-const CONTAINER_STATUSES: Record<string, { label: string; color: string }> = {
-  au_port: { label: 'Au port', color: 'info' },
-  retire: { label: 'Retiré', color: 'warning' },
-  en_transit: { label: 'En transit', color: 'warning' },
-  decharge: { label: 'Déchargé', color: 'success' },
-  retourne: { label: 'Retourné', color: 'default' },
-}
+import { CONTAINER_STATUSES, CONTAINER_STATUS_FLOW, type ContainerStatus } from '@/lib/container-statuses'
 
 const BL_STATUSES = ['en_attente', 'arrive', 'en_dedouanement', 'disponible', 'livre', 'termine']
 const BL_STATUS_LABELS: Record<string, string> = {
@@ -191,23 +184,23 @@ export default function BLDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl min-w-0">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex items-start gap-4 min-w-0">
           <Link href="/dashboard/connaissements">
             <button className="w-9 h-9 rounded-xl border border-border-base flex items-center justify-center text-text-secondary hover:text-accent hover:border-accent/40 transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </button>
           </Link>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-syne font-bold text-text-primary flex items-center gap-3">
               <Ship className="w-6 h-6 text-blue-400" /> {bl.reference}
             </h1>
             <p className="text-text-secondary mt-0.5">{bl.vessel_name} • {bl.port_of_discharge}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href={`/dashboard/connaissements/${blId}/modifier`}>
             <Button variant="outline" size="sm">
               <Edit2 className="w-4 h-4 mr-2" /> Modifier B/L
@@ -308,12 +301,14 @@ export default function BLDetailPage() {
         ) : (
           <div className="divide-y divide-border-base">
             {bl.containers.map((container: any) => {
-              const stInfo = CONTAINER_STATUSES[container.status] || { label: container.status, color: 'default' }
+              const stInfo = container.status in CONTAINER_STATUSES
+                ? CONTAINER_STATUSES[container.status as ContainerStatus]
+                : { label: container.status, color: 'default' }
               return (
-                <div key={container.id} className="p-5 flex flex-col sm:flex-row sm:items-start gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-mono font-bold text-text-primary text-lg">{container.container_number || 'N/A'}</span>
+                <div key={container.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-4 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                      <span className="font-mono font-bold text-text-primary text-lg break-all">{container.container_number || 'N/A'}</span>
                       <Badge variant="default" className="text-xs">{container.type}</Badge>
                       <Badge variant={stInfo.color as any} className="text-xs">{stInfo.label}</Badge>
                     </div>
@@ -323,6 +318,7 @@ export default function BLDetailPage() {
                       {container.weight_kg && <span>Poids: {container.weight_kg} kg</span>}
                       {container.pickup_date && <span>Retiré le: {formatDate(container.pickup_date)}</span>}
                       {container.return_date && <span>Retourné le: {formatDate(container.return_date)}</span>}
+                      {container.updated_at && <span>Modifié le: {formatDate(container.updated_at)}</span>}
                     </div>
 
                     {editContainerId === container.id ? (
@@ -346,22 +342,11 @@ export default function BLDetailPage() {
                       </button>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
-                    {container.status === 'au_port' && (
-                      <Button size="sm" variant="outline" disabled={updatingContainer === container.id} onClick={() => handleContainerStatus(container.id, 'retire')}>
-                        Retirer
-                      </Button>
-                    )}
-                    {container.status === 'retire' && (
-                      <Button size="sm" variant="outline" disabled={updatingContainer === container.id} onClick={() => handleContainerStatus(container.id, 'decharge')}>
-                        Décharger
-                      </Button>
-                    )}
-                    {(container.status === 'retire' || container.status === 'decharge') && (
-                      <Button size="sm" variant="success" disabled={updatingContainer === container.id} onClick={() => handleContainerStatus(container.id, 'retourne')}>
-                        Retourné ✓
-                      </Button>
-                    )}
+                  <div className="flex flex-wrap gap-2 mt-4 sm:mt-0 shrink-0">
+                    {CONTAINER_STATUS_FLOW[container.status as ContainerStatus] && (() => {
+                      const nextStatus = CONTAINER_STATUS_FLOW[container.status as ContainerStatus]!
+                      return <Button size="sm" variant={nextStatus === 'retourne' ? 'success' : 'outline'} disabled={updatingContainer === container.id} onClick={() => handleContainerStatus(container.id, nextStatus)}>Passer à {CONTAINER_STATUSES[nextStatus].label}</Button>
+                    })()}
                   </div>
                 </div>
               )

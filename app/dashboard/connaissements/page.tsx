@@ -157,7 +157,7 @@ export default function ConnaissementsPage() {
       </div>
 
       {/* Filtres et Recherche */}
-      <div className="bg-bg-card rounded-2xl border border-border-base p-4 flex flex-col md:flex-row gap-4">
+      <div className="bg-bg-card rounded-2xl border border-border-base p-4 flex flex-col md:flex-row gap-4 min-w-0">
         <div className="flex-1">
           <input 
             type="text" 
@@ -167,9 +167,9 @@ export default function ConnaissementsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:flex md:gap-4">
           <select 
-            className="select select-bordered bg-bg-surface border-border-base text-sm"
+            className="select select-bordered bg-bg-surface border-border-base text-sm w-full"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -179,7 +179,7 @@ export default function ConnaissementsPage() {
             ))}
           </select>
           <select 
-            className="select select-bordered bg-bg-surface border-border-base text-sm"
+            className="select select-bordered bg-bg-surface border-border-base text-sm w-full"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >

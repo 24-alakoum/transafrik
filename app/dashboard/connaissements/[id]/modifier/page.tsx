@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { toast } from 'sonner'
 import { updateFullBLAction } from '../../actions'
 import Link from 'next/link'
+import { CONTAINER_STATUSES } from '@/lib/container-statuses'
 
 const CONTAINER_TYPES = ['20\'DC', '40\'DC', '40\'HC', '45\'HC', '20\'Reefer', '40\'Reefer', '20\'OT', '40\'OT']
 
@@ -66,7 +67,7 @@ export default function ModifierBLPage() {
         free_time_detention_days: bl.free_time_detention_days || 7,
         status: bl.status || 'en_attente',
         notes: bl.notes || '',
-        containers: bl.containers?.length > 0 ? bl.containers : [{ container_number: '', type: "20'DC", seal_number: '', cargo_description: '', weight_kg: '', status: 'au_port' }]
+        containers: bl.containers?.length > 0 ? bl.containers : [{ container_number: '', type: "20'DC", seal_number: '', cargo_description: '', weight_kg: '', status: 'en_cours' }]
       })
     }
   }, [bl, reset])
@@ -107,14 +108,14 @@ export default function ModifierBLPage() {
   )
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center gap-4">
+    <div className="space-y-6 max-w-4xl min-w-0">
+      <div className="flex items-start gap-4 min-w-0">
         <Link href={`/dashboard/connaissements/${blId}`}>
           <button className="w-9 h-9 rounded-xl border border-border-base flex items-center justify-center text-text-secondary hover:text-accent hover:border-accent/40 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
         </Link>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-syne font-bold text-text-primary">Modifier Connaissement</h1>
           <p className="text-text-secondary mt-0.5">Mise à jour complète du B/L {bl.reference}</p>
         </div>
@@ -176,15 +177,15 @@ export default function ModifierBLPage() {
         </div>
 
         {/* Conteneurs */}
-        <div className="bg-bg-card rounded-2xl border border-border-base p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-bg-card rounded-2xl border border-border-base p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-accent/20 flex items-center justify-center">
                 <Package className="w-5 h-5 text-accent" />
               </div>
               <h2 className="text-lg font-syne font-semibold text-text-primary">Conteneurs ({fields.length})</h2>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => append({ container_number: '', type: "20'DC", seal_number: '', cargo_description: '', weight_kg: '', status: 'au_port' })}>
+            <Button type="button" variant="outline" size="sm" onClick={() => append({ container_number: '', type: "20'DC", seal_number: '', cargo_description: '', weight_kg: '', status: 'en_cours' })}>
               <Plus className="w-4 h-4 mr-2" /> Ajouter
             </Button>
           </div>
@@ -209,6 +210,12 @@ export default function ModifierBLPage() {
                     </select>
                   </div>
                   <Input {...register(`containers.${index}.seal_number`)} label="N° Plomb" placeholder="SL123456" />
+                  <div className="form-control">
+                    <label className="label pt-0"><span className="label-text text-text-secondary font-medium">État</span></label>
+                    <select {...register(`containers.${index}.status`)} className="select select-sm select-bordered bg-bg-surface border-border-base text-sm w-full">
+                      {Object.entries(CONTAINER_STATUSES).map(([value, info]) => <option key={value} value={value}>{info.label}</option>)}
+                    </select>
+                  </div>
                   <div className="sm:col-span-2">
                     <Input {...register(`containers.${index}.cargo_description`)} label="Description marchandise" placeholder="Équipements industriels" />
                   </div>

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { CONTAINER_STATUSES, type ContainerStatus } from '@/lib/container-statuses'
 
 async function getCompanyId() {
   const supabase = await createClient()
@@ -60,8 +61,10 @@ export async function updateContainerStatusAction(containerId: string, status: s
     if (!ctx) return { error: 'Non autorisÃ©' }
     const { supabase } = ctx
 
-    const updates: any = { status }
-    if (status === 'retire' && date) updates.pickup_date = date
+    if (!(status in CONTAINER_STATUSES)) return { error: 'Statut de conteneur invalide' }
+
+    const updates: any = { status: status as ContainerStatus, updated_at: new Date().toISOString() }
+    if (status === 'en_cours' && date) updates.pickup_date = date
     if (status === 'retourne' && date) updates.return_date = date
 
     const { error } = await (supabase.from('containers') as any)
@@ -103,7 +106,7 @@ export async function updateBLDatesAction(blId: string, data: any) {
     if (!ctx) return { error: 'Non autorisÃ©' }
     const { supabase } = ctx
 
-    const updates = { ...data }
+    const updates = { ...data, updated_at: new Date().toISOString() }
     if (updates.arrival_date === '') updates.arrival_date = null
     if (updates.created_at === '') delete updates.created_at
 
@@ -196,6 +199,7 @@ export async function updateFullBLAction(blId: string, formData: any) {
           bl_id: blId,
           company_id,
           weight_kg: c.weight_kg ? parseFloat(c.weight_kg) : null,
+          updated_at: new Date().toISOString(),
         }
         if (payload.id) {
           await (supabase.from('containers') as any).update(payload).eq('id', payload.id)
