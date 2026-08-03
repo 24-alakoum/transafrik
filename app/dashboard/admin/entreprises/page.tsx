@@ -65,7 +65,7 @@ export default async function AdminCompaniesPage() {
               </tr>
             </thead>
             <tbody>
-              {companyRows.map((company) => (
+              {companyRows.map((company: { id: string; name: string; plan: string; subscriptionPlan: string; subscriptionStatus: string; createdAt: string | null; activeUsers: number; userCount: number }) => (
                 <tr key={company.id} className="border-t border-border-base/60">
                   <td className="px-4 py-3 font-medium text-text-primary">{company.name}</td>
                   <td className="px-4 py-3">{company.plan}</td>

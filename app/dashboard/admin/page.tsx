@@ -11,11 +11,10 @@ export default async function AdminPage() {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('users')
+  const { data: profile } = await (supabase.from('users') as any)
     .select('role')
     .eq('id', user.id)
-    .maybeSingle<{ role?: string | null }>()
+    .maybeSingle()
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin'
 
   if (!isAdmin) {

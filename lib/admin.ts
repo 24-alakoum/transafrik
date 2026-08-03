@@ -79,8 +79,8 @@ export function buildAdminBillingHistory(params: {
     id: `subscription-${subscription.company_id}`,
     companyId: subscription.company_id,
     kind: 'subscription' as const,
-    plan: subscription.plan,
-    status: subscription.status,
+    plan: subscription.plan ?? undefined,
+    status: subscription.status ?? undefined,
     createdAt: subscription.current_period_end || '',
   }))
 
@@ -89,8 +89,8 @@ export function buildAdminBillingHistory(params: {
     companyId: transaction.company_id,
     kind: 'payment' as const,
     reference: transaction.reference || undefined,
-    plan: transaction.plan,
-    status: transaction.status,
+    plan: transaction.plan ?? undefined,
+    status: transaction.status ?? undefined,
     amount: Number(transaction.amount || 0),
     currency: transaction.currency || 'XOF',
     createdAt: transaction.created_at || '',

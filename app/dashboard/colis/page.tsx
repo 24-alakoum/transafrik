@@ -149,7 +149,7 @@ function QRScanModal({ onClose }: { onClose: () => void }) {
               placeholder="Référence ou code QR du colis"
               className="flex-1 px-3 py-2 bg-bg-surface border border-border-base rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/60"
             />
-            <button onClick={handleScan} className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">
+            <button onClick={() => handleScan()} className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">
               <Search className="w-4 h-4" />
             </button>
           </div>

@@ -14,7 +14,7 @@ export default function NotificationSettingsPage() {
   const [isSaving, setIsSaving] = React.useState(false)
   React.useEffect(() => {
     getNotificationPreferencesAction().then((result) => {
-      if (result.success) setPreferences(result.preferences)
+      if (result.success) setPreferences(result.preferences ?? DEFAULTS)
       else toast.error(result.error || 'Impossible de charger les préférences')
       setIsLoading(false)
     })

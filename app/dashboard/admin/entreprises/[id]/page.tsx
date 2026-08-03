@@ -4,6 +4,44 @@ import { createClient } from '@/lib/supabase/server'
 import { buildAdminBillingHistory, type AdminPaymentTransaction, type AdminSubscription } from '@/lib/admin'
 import { formatDate, formatFCFA } from '@/lib/utils'
 
+type CompanyDetailRow = {
+  id: string
+  name?: string | null
+  plan?: string | null
+  created_at?: string | null
+}
+
+type CompanyUserRow = {
+  id?: string
+  full_name?: string | null
+  role?: string | null
+  is_active?: boolean | null
+  created_at?: string | null
+}
+
+type CompanySubscriptionRow = {
+  plan?: string | null
+  status?: string | null
+  current_period_end?: string | null
+}
+
+type CompanyTripRow = {
+  revenue_fcfa?: number | string | null
+  reference?: string | null
+  destination?: string | null
+  status?: string | null
+}
+
+type CompanyPaymentTransactionRow = {
+  provider?: string | null
+  reference?: string | null
+  amount?: number | string | null
+  currency?: string | null
+  status?: string | null
+  plan?: string | null
+  created_at?: string | null
+}
+
 export default async function AdminCompanyDetailPage({
   params,
 }: {
@@ -17,18 +55,17 @@ export default async function AdminCompanyDetailPage({
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('users')
+  const { data: profile } = await (supabase.from('users') as any)
     .select('role')
     .eq('id', user.id)
-    .maybeSingle<{ role?: string | null }>()
+    .maybeSingle()
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin'
 
   if (!isAdmin) {
     redirect('/dashboard')
   }
 
-  const [{ data: company }, { data: users }, { data: subscriptions }, { data: trips }, { data: paymentTransactions }] = await Promise.all([
+  const [{ data: companyData }, { data: usersData }, { data: subscriptionsData }, { data: tripsData }, { data: paymentTransactionsData }] = await Promise.all([
     supabase.from('companies').select('id, name, plan, created_at').eq('id', id).single(),
     supabase.from('users').select('id, full_name, role, is_active, created_at').eq('company_id', id).order('created_at', { ascending: false }),
     supabase.from('subscriptions').select('plan, status, current_period_end').eq('company_id', id).order('created_at', { ascending: false }),
@@ -36,12 +73,18 @@ export default async function AdminCompanyDetailPage({
     supabase.from('payment_transactions').select('provider, reference, amount, currency, status, plan, created_at').eq('company_id', id).order('created_at', { ascending: false }),
   ])
 
+  const company = companyData as CompanyDetailRow | null
+  const users = (usersData ?? []) as CompanyUserRow[]
+  const subscriptions = (subscriptionsData ?? []) as CompanySubscriptionRow[]
+  const trips = (tripsData ?? []) as CompanyTripRow[]
+  const paymentTransactions = (paymentTransactionsData ?? []) as CompanyPaymentTransactionRow[]
+
   const companyName = company?.name || 'Entreprise sans nom'
-  const subscription = (subscriptions ?? [])[0]
-  const totalRevenue = (trips ?? []).reduce((sum: number, trip: any) => sum + Number(trip.revenue_fcfa || 0), 0)
+  const subscription = subscriptions[0]
+  const totalRevenue = trips.reduce((sum: number, trip) => sum + Number(trip.revenue_fcfa || 0), 0)
   const billingHistory = buildAdminBillingHistory({
-    subscriptions: (subscriptions ?? []) as AdminSubscription[],
-    paymentTransactions: (paymentTransactions ?? []) as AdminPaymentTransaction[],
+    subscriptions: subscriptions as AdminSubscription[],
+    paymentTransactions: paymentTransactions as AdminPaymentTransaction[],
   })
 
   return (
@@ -63,7 +106,7 @@ export default async function AdminCompanyDetailPage({
         </div>
         <div className="rounded-2xl border border-border-base bg-bg-card p-5">
           <p className="text-sm text-text-secondary">Utilisateurs</p>
-          <p className="mt-2 text-2xl font-syne font-bold text-text-primary">{(users ?? []).length}</p>
+          <p className="mt-2 text-2xl font-syne font-bold text-text-primary">{users.length}</p>
         </div>
         <div className="rounded-2xl border border-border-base bg-bg-card p-5">
           <p className="text-sm text-text-secondary">Revenus</p>
@@ -98,7 +141,7 @@ export default async function AdminCompanyDetailPage({
                 </tr>
               </thead>
               <tbody>
-                {(users ?? []).map((userProfile: any) => (
+                {users.map((userProfile) => (
                   <tr key={userProfile.id} className="border-t border-border-base/60">
                     <td className="px-4 py-3 font-medium text-text-primary">{userProfile.full_name || 'Utilisateur'}</td>
                     <td className="px-4 py-3">{userProfile.role || '—'}</td>
@@ -158,7 +201,7 @@ export default async function AdminCompanyDetailPage({
               </tr>
             </thead>
             <tbody>
-              {(trips ?? []).map((trip: any) => (
+              {trips.map((trip) => (
                 <tr key={trip.reference} className="border-t border-border-base/60">
                   <td className="px-4 py-3 font-medium text-text-primary">{trip.reference || '—'}</td>
                   <td className="px-4 py-3">{trip.destination || '—'}</td>
