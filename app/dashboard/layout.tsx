@@ -5,6 +5,7 @@ import { Topbar } from '@/components/layout/Topbar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { NotificationsRealtime } from '@/components/providers/NotificationsRealtime'
+import type { Company, User } from '@/types'
 
 export default async function DashboardLayout({
   children,
@@ -18,11 +19,31 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
+  // La session Supabase ne contient pas le rôle métier. Le transmettre à la
+  // navigation évite qu'elle ne démarre avec le rôle local "viewer" et masque
+  // des pages pourtant accessibles à l'utilisateur connecté.
+  const { data: profile } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  const { data: company } = profile?.company_id
+    ? await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', profile.company_id)
+        .single()
+    : { data: null }
+
   return (
     <QueryProvider>
       <NotificationsRealtime />
       <div className="min-h-screen bg-bg-base flex flex-col lg:flex-row">
-        <Sidebar />
+        <Sidebar
+          user={(profile as User | null) ?? null}
+          company={(company as Company | null) ?? null}
+        />
         
         <div className="flex-1 flex flex-col lg:pl-64 transition-all duration-300 min-h-screen">
           <Topbar />

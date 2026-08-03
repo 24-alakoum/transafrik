@@ -23,7 +23,17 @@ export function PwaInstallPrompt() {
     }
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => undefined)
+      if (process.env.NODE_ENV === 'development') {
+        // Un ancien service worker peut conserver des bundles CSS/JS obsolètes
+        // pendant le développement et afficher l'interface sans ses styles.
+        navigator.serviceWorker.getRegistrations()
+          .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+          .then(() => caches.keys())
+          .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+          .catch(() => undefined)
+      } else {
+        navigator.serviceWorker.register('/sw.js').catch(() => undefined)
+      }
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener)

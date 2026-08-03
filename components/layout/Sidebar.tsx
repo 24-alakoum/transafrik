@@ -25,6 +25,7 @@ import { useUIStore } from '@/store/useUIStore'
 import { useAuthStore } from '@/store/useAuthStore'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import type { Company, User } from '@/types'
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['owner', 'admin', 'manager', 'secretary', 'driver', 'accountant', 'dispatcher', 'viewer'] },
@@ -47,12 +48,22 @@ const advancedNavItems = [
   { name: 'IA & Analyses', href: '/dashboard/ia', icon: Brain, badge: null, roles: ['owner', 'admin', 'manager'] },
 ]
 
-export function Sidebar() {
+type SidebarProps = {
+  user?: User | null
+  company?: Company | null
+}
+
+export function Sidebar({ user: serverUser, company: serverCompany }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { sidebarOpen, setSidebarOpen } = useUIStore()
-  const { user, company, logout } = useAuthStore()
-  const userRole = (user?.role as string | undefined) ?? 'viewer'
+  const { user: storedUser, company: storedCompany, logout } = useAuthStore()
+  const user = serverUser ?? storedUser
+  const company = serverCompany ?? storedCompany
+  const storedRole = (user?.role as string | undefined) ?? 'viewer'
+  // Le schéma actuel utilise « staff » alors que la navigation utilisait des
+  // rôles plus détaillés. Ces membres doivent voir les pages opérationnelles.
+  const userRole = storedRole === 'staff' ? 'manager' : storedRole
 
   const visibleNavItems = navItems.filter((item) => item.roles.includes(userRole))
   const visibleAdvancedNavItems = advancedNavItems.filter((item) => item.roles.includes(userRole))
