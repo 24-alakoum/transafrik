@@ -28,7 +28,9 @@ export async function createChauffeurAction(formData: unknown) {
         ...parsed.data,
         company_id: userData?.company_id,
         license_number: encryptedLicense,
-        birth_date: encryptedBirthDate ? null : undefined, // Keep real date column empty or we need to rethink the schema. Wait, if it's text in db it works, but birth_date is DATE. So we can't encrypt birth_date if it's type DATE unless we change DB type or just encrypt other text fields. Let's assume national_id and license_number are TEXT so we encrypt them. For birth_date we just leave it as is to avoid db cast errors (DATE cannot hold encrypted string). Wait, prompt said: "chiffrer license_number, birth_date, national_id". If birth_date is DATE, I will pass it as DATE and encrypt the other two.
+        // birth_date est de type DATE en DB — on ne peut pas stocker une valeur chiffrée
+        // On passe la valeur brute telle quelle (elle est déjà dans parsed.data)
+        birth_date: parsed.data.birth_date || null,
         national_id: encryptedNationalId,
       } as any)
       .select('id')
@@ -99,7 +101,8 @@ export async function updateChauffeurAction(chauffeurId: string, formData: unkno
     const updateData = {
       ...parsed.data,
       license_number: encryptedLicense,
-      birth_date: encryptedBirthDate ? null : undefined, 
+      // birth_date est de type DATE en DB — on passe la valeur brute
+      birth_date: parsed.data.birth_date || null,
       national_id: encryptedNationalId,
     }
 

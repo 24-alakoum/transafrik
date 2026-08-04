@@ -154,9 +154,9 @@ export function useNotifications() {
   return useQuery({
     queryKey: queryKeys.notifications.list(),
     queryFn: () => fetchJSON<{ data: any[] }>('/api/data/notifications'),
-    // Rafraîchissement automatique toutes les 2 minutes
-    refetchInterval: 2 * 60 * 1000,
-    staleTime: 30 * 1000,
+    // Rafraîchissement toutes les 30s (pas de Realtime sur plan gratuit)
+    refetchInterval: 30 * 1000,
+    staleTime: 10 * 1000,
   })
 }
 
