@@ -35,7 +35,7 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
       monthly_salary: initialData.monthly_salary || 0,
       emergency_contact: initialData.emergency_contact || '',
       status: initialData.status || 'available',
-      truck_id: initialData.truck_id || null,
+    
     }
   })
 
