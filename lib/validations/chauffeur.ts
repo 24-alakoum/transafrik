@@ -24,11 +24,6 @@ export const chauffeurSchema = z.object({
   status: z
     .enum(['available', 'on_trip', 'on_leave', 'inactive'])
     .default('available'),
-  // truck_id: accepte vide ou UUID valide
-  // truck_id: z.preprocess(
-  //   (v) => (v === '' || v === null || v === undefined ? null : v),
-  //   z.string().uuid().nullable().optional()
-  // ),
 })
 
 export type ChauffeurInput = z.infer<typeof chauffeurSchema>
