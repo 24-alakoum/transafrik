@@ -22,8 +22,9 @@ export const chauffeurSchema = z.object({
   ),
   emergency_contact: z.string().max(200).optional().nullable(),
   status: z
-    .enum(['available', 'on_trip', 'on_leave', 'inactive'])
-    .default('available'),
+    .enum(['available', 'on_trip', 'on_leave', 'leave', 'inactive'])
+    .default('available')
+    .transform((val) => (val === 'leave' ? 'on_leave' : val)),
 })
 
 export type ChauffeurInput = z.infer<typeof chauffeurSchema>

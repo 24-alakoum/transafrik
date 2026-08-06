@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const depenseSchema = z.object({
   category: z
-    .enum(['carburant', 'maintenance', 'peage', 'salaire', 'assurance', 'amende', 'parking', 'frais_aller', 'frais_retour', 'autre'])
+    .enum(['carburant', 'maintenance', 'peage', 'salaire', 'assurance', 'amende', 'parking', 'frais_aller', 'frais_retour', 'frais_route', 'autre'])
     .default('autre'),
   amount_fcfa: z.coerce
     .number()
@@ -11,8 +11,8 @@ export const depenseSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   trip_id: z.string().uuid().optional().nullable(),
   truck_id: z.string().uuid().optional().nullable(),
-  is_reimbursed: z.boolean().default(false),
-  receipt_url: z.string().url().or(z.literal('')).optional().nullable(),
+  is_reimbursed: z.boolean().default(false).optional().nullable(),
+  receipt_url: z.string().optional().nullable(),
   receipt_size: z.number().int().positive().optional().nullable(),
 })
 

@@ -168,7 +168,7 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
               >
                 <option value="available">Disponible</option>
                 <option value="on_trip">En voyage</option>
-                <option value="leave">Congé</option>
+                <option value="on_leave">Congé</option>
                 <option value="inactive">Parti(e)</option>
               </select>
               {errors.status && <p className="mt-1 text-xs text-danger">{errors.status.message}</p>}

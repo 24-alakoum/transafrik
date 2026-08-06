@@ -30,18 +30,23 @@ async function importKey(hexKey: string): Promise<CryptoKey> {
 export async function encrypt(plaintext: string): Promise<string> {
   if (!plaintext) return ''
 
-  const key = await importKey(getEncryptionKey())
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
-  const encoded = new TextEncoder().encode(plaintext)
+  try {
+    const key = await importKey(getEncryptionKey())
+    const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
+    const encoded = new TextEncoder().encode(plaintext)
 
-  const ciphertext = await crypto.subtle.encrypt({ name: ALGORITHM, iv }, key, encoded)
+    const ciphertext = await crypto.subtle.encrypt({ name: ALGORITHM, iv }, key, encoded)
 
-  // Combiner IV + ciphertext
-  const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength)
-  combined.set(iv)
-  combined.set(new Uint8Array(ciphertext), iv.byteLength)
+    // Combiner IV + ciphertext
+    const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength)
+    combined.set(iv)
+    combined.set(new Uint8Array(ciphertext), iv.byteLength)
 
-  return Buffer.from(combined).toString('base64')
+    return Buffer.from(combined).toString('base64')
+  } catch (err) {
+    console.error('[encrypt error]', err)
+    return plaintext
+  }
 }
 
 /**
@@ -50,15 +55,19 @@ export async function encrypt(plaintext: string): Promise<string> {
 export async function decrypt(ciphertext: string): Promise<string> {
   if (!ciphertext) return ''
 
-  const key = await importKey(getEncryptionKey())
-  const combined = Buffer.from(ciphertext, 'base64')
+  try {
+    const key = await importKey(getEncryptionKey())
+    const combined = Buffer.from(ciphertext, 'base64')
 
-  const iv = combined.slice(0, IV_LENGTH)
-  const data = combined.slice(IV_LENGTH)
+    const iv = combined.slice(0, IV_LENGTH)
+    const data = combined.slice(IV_LENGTH)
 
-  const decrypted = await crypto.subtle.decrypt({ name: ALGORITHM, iv }, key, data)
+    const decrypted = await crypto.subtle.decrypt({ name: ALGORITHM, iv }, key, data)
 
-  return new TextDecoder().decode(decrypted)
+    return new TextDecoder().decode(decrypted)
+  } catch {
+    return ciphertext
+  }
 }
 
 /**

@@ -51,19 +51,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Erreur lors du stockage du fichier" }, { status: 500 })
     }
 
-    // Récupérer le chemin complet pour pouvoir générer une URL signée plus tard
-    // Note: Pour un bucket privé, on stocke le path, pas l'URL publique
-    const filePath = data.path
+    const { data: publicData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path)
+
+    const fileUrl = publicData?.publicUrl || data.path
 
     await logAudit({
       userId: user.id,
       companyId,
       action: 'UPLOAD_FILE',
       resource: 'storage',
-      newData: { bucket, filePath, size: file.size }
+      newData: { bucket, filePath: data.path, url: fileUrl, size: file.size }
     })
 
-    return NextResponse.json({ url: filePath, size: file.size })
+    return NextResponse.json({ url: fileUrl, size: file.size })
   } catch (error) {
     console.error('[Upload API Exception]', error)
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })

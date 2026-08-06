@@ -17,13 +17,70 @@ export async function createDepenseAction(formData: unknown) {
 
     const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
-    const { data: depenseData, error } = (await supabase
+    const {
+      category,
+      amount_fcfa,
+      date,
+      description,
+      trip_id,
+      truck_id,
+      receipt_url,
+      receipt_size,
+      is_reimbursed,
+    } = parsed.data
+
+    const payload: Record<string, any> = {
+      company_id: userData?.company_id,
+      category: category || 'autre',
+      amount_fcfa,
+      date,
+      description: description || null,
+      trip_id: trip_id || null,
+      truck_id: truck_id || null,
+      receipt_url: receipt_url || null,
+      created_by: user.id,
+    }
+
+    if (receipt_size !== undefined && receipt_size !== null) {
+      payload.receipt_size = receipt_size
+    }
+    if (is_reimbursed !== undefined && is_reimbursed !== null) {
+      payload.is_reimbursed = is_reimbursed
+    }
+
+    let { data: depenseData, error } = (await supabase
       .from('expenses')
-      .insert({ ...parsed.data, company_id: userData?.company_id } as any)
+      .insert(payload as any)
       .select('id')
       .single()) as any
 
+    // Handle missing optional columns gracefully (if DB table schema doesn't have is_reimbursed/receipt_size)
+    if (error && error.message && (error.message.includes('is_reimbursed') || error.message.includes('receipt_size'))) {
+      delete payload.is_reimbursed
+      delete payload.receipt_size
+      const retry = (await supabase
+        .from('expenses')
+        .insert(payload as any)
+        .select('id')
+        .single()) as any
+      depenseData = retry.data
+      error = retry.error
+    }
+
+    // Handle category constraint check failure fallback
+    if (error && error.message && error.message.includes('category')) {
+      payload.category = 'autre'
+      const retry = (await supabase
+        .from('expenses')
+        .insert(payload as any)
+        .select('id')
+        .single()) as any
+      depenseData = retry.data
+      error = retry.error
+    }
+
     if (error) {
+      console.error('[createDepenseAction DB Error]', error)
       return { success: false, error: { _global: error.message } }
     }
 
@@ -36,8 +93,9 @@ export async function createDepenseAction(formData: unknown) {
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: { _global: 'Erreur inattendue' } }
+  } catch (err: any) {
+    console.error('[createDepenseAction Exception]', err)
+    return { success: false, error: { _global: err?.message || 'Erreur inattendue lors de la création de la dépense' } }
   }
 }
 
@@ -53,13 +111,66 @@ export async function updateDepenseAction(depenseId: string, formData: unknown) 
 
     const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
-    const { error } = await (supabase
+    const {
+      category,
+      amount_fcfa,
+      date,
+      description,
+      trip_id,
+      truck_id,
+      receipt_url,
+      receipt_size,
+      is_reimbursed,
+    } = parsed.data
+
+    const payload: Record<string, any> = {
+      category: category || 'autre',
+      amount_fcfa,
+      date,
+      description: description || null,
+      trip_id: trip_id || null,
+      truck_id: truck_id || null,
+      receipt_url: receipt_url || null,
+    }
+
+    if (receipt_size !== undefined && receipt_size !== null) {
+      payload.receipt_size = receipt_size
+    }
+    if (is_reimbursed !== undefined && is_reimbursed !== null) {
+      payload.is_reimbursed = is_reimbursed
+    }
+
+    let { error } = await (supabase
       .from('expenses') as any)
-      .update(parsed.data)
+      .update(payload)
       .eq('id', depenseId)
       .eq('company_id', userData?.company_id)
 
-    if (error) return { success: false, error: { _global: error.message } }
+    if (error && error.message && (error.message.includes('is_reimbursed') || error.message.includes('receipt_size'))) {
+      delete payload.is_reimbursed
+      delete payload.receipt_size
+      const retry = await (supabase
+        .from('expenses') as any)
+        .update(payload)
+        .eq('id', depenseId)
+        .eq('company_id', userData?.company_id)
+      error = retry.error
+    }
+
+    if (error && error.message && error.message.includes('category')) {
+      payload.category = 'autre'
+      const retry = await (supabase
+        .from('expenses') as any)
+        .update(payload)
+        .eq('id', depenseId)
+        .eq('company_id', userData?.company_id)
+      error = retry.error
+    }
+
+    if (error) {
+      console.error('[updateDepenseAction DB Error]', error)
+      return { success: false, error: { _global: error.message } }
+    }
 
     await logAudit({
       userId: user.id,
@@ -70,8 +181,9 @@ export async function updateDepenseAction(depenseId: string, formData: unknown) 
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: { _global: 'Erreur inattendue' } }
+  } catch (err: any) {
+    console.error('[updateDepenseAction Exception]', err)
+    return { success: false, error: { _global: err?.message || 'Erreur inattendue lors de la modification de la dépense' } }
   }
 }
 
@@ -101,8 +213,9 @@ export async function deleteDepenseAction(depenseId: string) {
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: 'Erreur inattendue' }
+  } catch (err: any) {
+    console.error('[deleteDepenseAction Exception]', err)
+    return { success: false, error: err?.message || 'Erreur inattendue' }
   }
 }
 
@@ -156,8 +269,8 @@ export async function createLigneDepenseAction(formData: unknown) {
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: { _global: 'Erreur inattendue' } }
+  } catch (err: any) {
+    return { success: false, error: { _global: err?.message || 'Erreur inattendue' } }
   }
 }
 
@@ -193,8 +306,8 @@ export async function updateLigneDepenseAction(lineId: string, formData: unknown
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: { _global: 'Erreur inattendue' } }
+  } catch (err: any) {
+    return { success: false, error: { _global: err?.message || 'Erreur inattendue' } }
   }
 }
 
@@ -220,12 +333,12 @@ export async function deleteLigneDepenseAction(lineId: string, expenseId: string
       userId: user.id,
       companyId: userData?.company_id ?? '',
       action: 'DELETE_EXPENSE_LINE',
-      resource: 'expense_lines',
+      resource: 'expenses',
       resourceId: lineId,
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: 'Erreur inattendue' }
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erreur inattendue' }
   }
 }

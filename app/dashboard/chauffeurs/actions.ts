@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit'
 import { chauffeurSchema } from '@/lib/validations/chauffeur'
 import { encrypt } from '@/lib/encryption'
-import { headers } from 'next/headers'
 
 export async function createChauffeurAction(formData: unknown) {
   try {
@@ -17,26 +16,65 @@ export async function createChauffeurAction(formData: unknown) {
 
     const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
-    // Chiffrement des données PII sensibles
-    const encryptedLicense = parsed.data.license_number ? await encrypt(parsed.data.license_number) : null
-    const encryptedBirthDate = parsed.data.birth_date ? await encrypt(parsed.data.birth_date) : null
-    const encryptedNationalId = parsed.data.national_id ? await encrypt(parsed.data.national_id) : null
+    const {
+      full_name,
+      phone,
+      email,
+      address,
+      city,
+      country,
+      license_number,
+      license_categories,
+      license_expiry,
+      birth_date,
+      national_id,
+      monthly_salary,
+      emergency_contact,
+      status,
+    } = parsed.data
 
-    const { data: chauffeur, error } = (await supabase
+    const encryptedLicense = license_number ? await encrypt(license_number) : null
+    const encryptedNationalId = national_id ? await encrypt(national_id) : null
+
+    const driverPayload: any = {
+      company_id: userData?.company_id,
+      full_name,
+      phone: phone || null,
+      email: email || null,
+      address: address || null,
+      city: city || null,
+      country: country || null,
+      license_number: encryptedLicense || null,
+      license_categories: license_categories || null,
+      license_expiry: license_expiry || null,
+      birth_date: birth_date || null,
+      national_id: encryptedNationalId || null,
+      monthly_salary: monthly_salary || 0,
+      emergency_contact: emergency_contact || null,
+      status: status || 'available',
+    }
+
+    let { data: chauffeur, error } = (await supabase
       .from('drivers')
-      .insert({
-        ...parsed.data,
-        company_id: userData?.company_id,
-        license_number: encryptedLicense,
-        // birth_date est de type DATE en DB — on ne peut pas stocker une valeur chiffrée
-        // On passe la valeur brute telle quelle (elle est déjà dans parsed.data)
-        birth_date: parsed.data.birth_date || null,
-        national_id: encryptedNationalId,
-      } as any)
+      .insert(driverPayload as any)
       .select('id')
       .single()) as any
 
-    if (error) return { success: false, error: { _global: error.message } }
+    if (error && error.message?.includes('status')) {
+      driverPayload.status = status === 'on_leave' ? 'leave' : 'available'
+      const retry = (await supabase
+        .from('drivers')
+        .insert(driverPayload as any)
+        .select('id')
+        .single()) as any
+      chauffeur = retry.data
+      error = retry.error
+    }
+
+    if (error) {
+      console.error('[createChauffeurAction error]', error)
+      return { success: false, error: { _global: error.message } }
+    }
 
     await logAudit({
       userId: user.id,
@@ -47,8 +85,9 @@ export async function createChauffeurAction(formData: unknown) {
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: { _global: 'Erreur inattendue' } }
+  } catch (err: any) {
+    console.error('[createChauffeurAction Exception]', err)
+    return { success: false, error: { _global: err?.message || 'Erreur inattendue lors de la création du chauffeur' } }
   }
 }
 
@@ -77,8 +116,9 @@ export async function deleteChauffeurAction(chauffeurId: string) {
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: 'Erreur inattendue' }
+  } catch (err: any) {
+    console.error('[deleteChauffeurAction Exception]', err)
+    return { success: false, error: err?.message || 'Erreur inattendue' }
   }
 }
 
@@ -93,26 +133,63 @@ export async function updateChauffeurAction(chauffeurId: string, formData: unkno
 
     const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
-    // Encrypt sensitive fields again if they were provided/updated
-    const encryptedLicense = parsed.data.license_number ? await encrypt(parsed.data.license_number) : null
-    const encryptedBirthDate = parsed.data.birth_date ? await encrypt(parsed.data.birth_date) : null
-    const encryptedNationalId = parsed.data.national_id ? await encrypt(parsed.data.national_id) : null
+    const {
+      full_name,
+      phone,
+      email,
+      address,
+      city,
+      country,
+      license_number,
+      license_categories,
+      license_expiry,
+      birth_date,
+      national_id,
+      monthly_salary,
+      emergency_contact,
+      status,
+    } = parsed.data
 
-    const updateData = {
-      ...parsed.data,
-      license_number: encryptedLicense,
-      // birth_date est de type DATE en DB — on passe la valeur brute
-      birth_date: parsed.data.birth_date || null,
-      national_id: encryptedNationalId,
+    const encryptedLicense = license_number ? await encrypt(license_number) : null
+    const encryptedNationalId = national_id ? await encrypt(national_id) : null
+
+    const updateData: any = {
+      full_name,
+      phone: phone || null,
+      email: email || null,
+      address: address || null,
+      city: city || null,
+      country: country || null,
+      license_number: encryptedLicense || null,
+      license_categories: license_categories || null,
+      license_expiry: license_expiry || null,
+      birth_date: birth_date || null,
+      national_id: encryptedNationalId || null,
+      monthly_salary: monthly_salary || 0,
+      emergency_contact: emergency_contact || null,
+      status: status || 'available',
     }
 
-    const { error } = await (supabase
+    let { error } = await (supabase
       .from('drivers') as any)
       .update(updateData)
       .eq('id', chauffeurId)
       .eq('company_id', userData?.company_id)
 
-    if (error) return { success: false, error: { _global: error.message } }
+    if (error && error.message?.includes('status')) {
+      updateData.status = status === 'on_leave' ? 'leave' : 'available'
+      const retry = await (supabase
+        .from('drivers') as any)
+        .update(updateData)
+        .eq('id', chauffeurId)
+        .eq('company_id', userData?.company_id)
+      error = retry.error
+    }
+
+    if (error) {
+      console.error('[updateChauffeurAction error]', error)
+      return { success: false, error: { _global: error.message } }
+    }
 
     await logAudit({
       userId: user.id,
@@ -123,7 +200,8 @@ export async function updateChauffeurAction(chauffeurId: string, formData: unkno
     })
 
     return { success: true }
-  } catch (err) {
-    return { success: false, error: { _global: 'Erreur inattendue' } }
+  } catch (err: any) {
+    console.error('[updateChauffeurAction Exception]', err)
+    return { success: false, error: { _global: err?.message || 'Erreur inattendue lors de la modification du chauffeur' } }
   }
 }
