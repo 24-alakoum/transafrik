@@ -4,6 +4,8 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/queries/keys'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -14,7 +16,8 @@ import Link from 'next/link'
 
 export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: any, chauffeurId: string }) {
   const router = useRouter()
-  const [isPending, startTransition] = React.useTransition()
+  const queryClient = useQueryClient()
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   const {
     register,
@@ -35,15 +38,20 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
       monthly_salary: initialData.monthly_salary || 0,
       emergency_contact: initialData.emergency_contact || '',
       status: initialData.status || 'available',
-    
     }
   })
 
-  const onSubmit = (data: ChauffeurInput) => {
-    startTransition(async () => {
+  const onSubmit = async (data: ChauffeurInput) => {
+    setIsSubmitting(true)
+    try {
       const result = await updateChauffeurAction(chauffeurId, data)
       
-      if (!result.success && result.error) {
+      if (result.success) {
+        toast.success('Chauffeur modifié avec succès')
+        queryClient.invalidateQueries({ queryKey: queryKeys.chauffeurs.all() })
+        router.push(`/dashboard/chauffeurs`)
+      } else if (result.error) {
+        setIsSubmitting(false)
         if ('_global' in result.error) {
           toast.error(result.error._global as string)
         } else {
@@ -51,13 +59,20 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
             const msgs = messages as string[]
             setError(field as keyof ChauffeurInput, { type: 'server', message: msgs?.[0] })
           })
+          toast.error('Veuillez corriger les erreurs dans le formulaire')
         }
-      } else if (result.success) {
-        toast.success('Chauffeur modifié avec succès')
-        router.push(`/dashboard/chauffeurs`)
-        router.refresh()
+      } else {
+        setIsSubmitting(false)
+        toast.error('Erreur inattendue, veuillez réessayer')
       }
-    })
+    } catch (err: any) {
+      setIsSubmitting(false)
+      toast.error(err?.message || 'Erreur inattendue, veuillez réessayer')
+    }
+  }
+
+  const onInvalid = () => {
+    toast.error('Veuillez corriger les champs requis dans le formulaire')
   }
 
   return (
@@ -74,7 +89,7 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
         <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
           <h2 className="text-lg font-syne font-semibold text-text-primary mb-4">Informations personnelles</h2>
           
@@ -180,7 +195,7 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
           <Link href="/dashboard/chauffeurs">
             <Button variant="ghost" type="button">Annuler</Button>
           </Link>
-          <Button type="submit" isLoading={isPending}>
+          <Button type="submit" isLoading={isSubmitting}>
             <Save className="w-4 h-4 mr-2" />
             Enregistrer les modifications
           </Button>
@@ -189,3 +204,4 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
     </div>
   )
 }
+

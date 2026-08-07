@@ -4,6 +4,8 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/queries/keys'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -29,7 +31,8 @@ const CATEGORIES = [
 
 export default function NouvelleDepensePage() {
   const router = useRouter()
-  const [isPending, startTransition] = React.useTransition()
+  const queryClient = useQueryClient()
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   // Use React Query hooks (go through secure API routes)
   const { data: voyagesData, isLoading: loadingVoyages } = useVoyages({ pageSize: 100 })
@@ -53,6 +56,9 @@ export default function NouvelleDepensePage() {
       date: new Date().toISOString().split('T')[0],
       receipt_url: '',
       receipt_size: null,
+      description: '',
+      trip_id: null,
+      truck_id: null,
     },
   })
 
@@ -71,28 +77,41 @@ export default function NouvelleDepensePage() {
     }
   }, [selectedCategory, selectedTripId, trips, setValue])
 
-  const onSubmit = (data: DepenseInput) => {
-    startTransition(async () => {
+  const onSubmit = async (data: DepenseInput) => {
+    setIsSubmitting(true)
+    try {
       const payload = { ...data }
       if (!payload.trip_id) payload.trip_id = null
       if (!payload.truck_id) payload.truck_id = null
 
       const result = await createDepenseAction(payload)
 
-      if (!result.success && result.error) {
+      if (result.success) {
+        toast.success('Dépense enregistrée avec succès')
+        queryClient.invalidateQueries({ queryKey: queryKeys.depenses.all() })
+        router.push(`/dashboard/depenses`)
+      } else if (result.error) {
+        setIsSubmitting(false)
         if ('_global' in result.error) {
           toast.error(result.error._global)
         } else {
           Object.entries(result.error).forEach(([field, messages]) => {
-            setError(field as keyof DepenseInput, { type: 'server', message: messages?.[0] })
+            setError(field as keyof DepenseInput, { type: 'server', message: (messages as string[])?.[0] })
           })
+          toast.error('Veuillez corriger les erreurs dans le formulaire')
         }
-      } else if (result.success) {
-        toast.success('Dépense enregistrée avec succès')
-        router.push(`/dashboard/depenses`)
-        router.refresh()
+      } else {
+        setIsSubmitting(false)
+        toast.error('Erreur inattendue, veuillez réessayer')
       }
-    })
+    } catch (err: any) {
+      setIsSubmitting(false)
+      toast.error(err?.message || 'Erreur inattendue, veuillez réessayer')
+    }
+  }
+
+  const onInvalid = () => {
+    toast.error('Veuillez corriger les champs requis dans le formulaire (notamment le montant et la date)')
   }
 
   const isFraisVoyage = ['frais_aller', 'frais_retour'].includes(selectedCategory || '')
@@ -111,7 +130,7 @@ export default function NouvelleDepensePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
         {/* Section Informations générales */}
         <div className="bg-bg-card rounded-2xl p-6 border border-border-base shadow-sm space-y-4">
           <h2 className="text-lg font-syne font-semibold text-text-primary mb-4">Informations générales</h2>
@@ -155,6 +174,7 @@ export default function NouvelleDepensePage() {
               className="textarea textarea-bordered bg-bg-surface border-border-base h-24"
               placeholder="Détails de la dépense..."
             />
+            {errors.description && <p className="mt-1 text-xs text-danger">{errors.description.message}</p>}
           </div>
 
           <div className="form-control w-full">
@@ -195,6 +215,7 @@ export default function NouvelleDepensePage() {
                   </option>
                 ))}
               </select>
+              {errors.trip_id && <p className="mt-1 text-xs text-danger">{errors.trip_id.message}</p>}
             </div>
             <div className="form-control w-full">
               <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Lier à un camion</span></label>
@@ -208,6 +229,7 @@ export default function NouvelleDepensePage() {
                   <option key={t.id} value={t.id}>{t.plate} {t.brand ? `(${t.brand})` : ''}</option>
                 ))}
               </select>
+              {errors.truck_id && <p className="mt-1 text-xs text-danger">{errors.truck_id.message}</p>}
             </div>
           </div>
         </div>
@@ -216,7 +238,7 @@ export default function NouvelleDepensePage() {
           <Link href="/dashboard/depenses">
             <Button variant="ghost" type="button">Annuler</Button>
           </Link>
-          <Button type="submit" isLoading={isPending}>
+          <Button type="submit" isLoading={isSubmitting}>
             <Save className="w-4 h-4 mr-2" />
             Enregistrer
           </Button>
@@ -225,3 +247,4 @@ export default function NouvelleDepensePage() {
     </div>
   )
 }
+
