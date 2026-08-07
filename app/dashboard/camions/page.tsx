@@ -151,9 +151,11 @@ export default function CamionsPage() {
               <div key={truck.id} className="bg-bg-card rounded-2xl border border-border-base shadow-sm p-5 hover:border-border-active transition-colors group relative">
                 <div className="flex justify-between items-start mb-4">
                   <div className="pr-6">
-                    <h3 className="text-xl font-syne font-bold text-text-primary tracking-wide">
-                      {truck.plate}
-                    </h3>
+                    <Link href={`/dashboard/camions/${truck.id}`} className="hover:underline">
+                      <h3 className="text-xl font-syne font-bold text-text-primary tracking-wide">
+                        {truck.plate}
+                      </h3>
+                    </Link>
                     <p className="text-sm text-text-secondary mt-0.5">{truck.brand} {truck.model}</p>
                   </div>
                   <div className="flex items-center gap-2">

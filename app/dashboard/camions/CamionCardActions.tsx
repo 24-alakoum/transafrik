@@ -1,10 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { MoreHorizontal, Edit, Trash2 } from 'lucide-react'
+import { deleteCamionAction } from './actions'
+import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { deleteCamionAction } from './actions'
 import Link from 'next/link'
 
 interface CamionCardActionsProps {
@@ -33,7 +33,13 @@ export function CamionCardActions({ camionId }: CamionCardActionsProps) {
       <div tabIndex={0} role="button" className="btn btn-ghost btn-xs btn-circle text-text-muted hover:text-text-primary">
         <MoreHorizontal className="w-4 h-4" />
       </div>
-      <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-sm bg-bg-surface border border-border-base rounded-box w-40 mt-1">
+      <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-sm bg-bg-surface border border-border-base rounded-box w-44 mt-1">
+        <li>
+          <Link href={`/dashboard/camions/${camionId}`} className="text-text-primary hover:bg-bg-raised flex items-center gap-2">
+            <Eye className="w-4 h-4 text-accent" />
+            Voir détails
+          </Link>
+        </li>
         <li>
           <Link href={`/dashboard/camions/${camionId}/editer`} className="text-text-primary hover:bg-bg-raised flex items-center gap-2">
             <Edit className="w-4 h-4" />

@@ -49,6 +49,25 @@ export async function createVoyageAction(formData: unknown) {
       return { success: false, error: { _global: error.message } }
     }
 
+    // Synchronisation automatique dans la table `revenues` si un revenu est spécifié
+    if (parsed.data.revenue_fcfa && Number(parsed.data.revenue_fcfa) > 0) {
+      try {
+        await supabase.from('revenues').insert({
+          company_id: userData.company_id,
+          trip_id: trip.id,
+          client_id: parsed.data.client_id || null,
+          description: `Recette voyage ${reference} (${parsed.data.origin} -> ${parsed.data.destination})`,
+          amount_fcfa: Number(parsed.data.revenue_fcfa),
+          date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+          source: 'transport',
+          status: 'encaisse',
+          reference: reference,
+        })
+      } catch (revErr) {
+        console.error('[createVoyageAction Sync Revenue Error]', revErr)
+      }
+    }
+
     await logAudit({
       userId: user.id,
       companyId: userData.company_id,
@@ -99,6 +118,50 @@ export async function updateVoyageAction(id: string, formData: unknown) {
 
     if (error) {
       return { success: false, error: { _global: error.message } }
+    }
+
+    // Mettre à jour ou ajouter la recette associée
+    if (parsed.data.revenue_fcfa !== undefined) {
+      try {
+        const revAmount = Number(parsed.data.revenue_fcfa || 0)
+        const { data: existingRev } = await supabase
+          .from('revenues')
+          .select('id')
+          .eq('trip_id', id)
+          .maybeSingle()
+
+        if (existingRev) {
+          if (revAmount > 0) {
+            await supabase
+              .from('revenues')
+              .update({
+                amount_fcfa: revAmount,
+                client_id: parsed.data.client_id || null,
+                date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+                description: `Recette voyage (${parsed.data.origin} -> ${parsed.data.destination})`,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existingRev.id)
+          } else {
+            await supabase.from('revenues').delete().eq('id', existingRev.id)
+          }
+        } else if (revAmount > 0) {
+          const { data: currentTrip } = await supabase.from('trips').select('reference').eq('id', id).single()
+          await supabase.from('revenues').insert({
+            company_id: userData.company_id,
+            trip_id: id,
+            client_id: parsed.data.client_id || null,
+            description: `Recette voyage ${currentTrip?.reference || ''} (${parsed.data.origin} -> ${parsed.data.destination})`,
+            amount_fcfa: revAmount,
+            date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+            source: 'transport',
+            status: 'encaisse',
+            reference: currentTrip?.reference || null,
+          })
+        }
+      } catch (revErr) {
+        console.error('[updateVoyageAction Sync Revenue Error]', revErr)
+      }
     }
 
     await logAudit({
@@ -170,6 +233,11 @@ export async function deleteVoyageAction(id: string) {
       .eq('company_id', userData?.company_id)) as any
 
     if (error) return { success: false, error: error.message }
+
+    // Nettoyer la recette liée
+    try {
+      await supabase.from('revenues').delete().eq('trip_id', id)
+    } catch {}
 
     await logAudit({
       userId: user.id,

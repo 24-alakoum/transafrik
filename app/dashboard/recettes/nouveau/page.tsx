@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
+import { useQuery } from '@tanstack/react-query'
 import { TrendingUp, ArrowLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -13,6 +14,30 @@ import Link from 'next/link'
 export default function NouvelleRecettePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(false)
+
+  // Charger la liste des clients et voyages
+  const { data: clientsData } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await fetch('/api/data/clients')
+      if (!res.ok) return []
+      const json = await res.json()
+      return json.data || []
+    }
+  })
+
+  const { data: voyagesData } = useQuery({
+    queryKey: ['voyages'],
+    queryFn: async () => {
+      const res = await fetch('/api/data/voyages')
+      if (!res.ok) return []
+      const json = await res.json()
+      return json.data || []
+    }
+  })
+
+  const clients = clientsData || []
+  const voyages = voyagesData || []
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
@@ -73,11 +98,11 @@ export default function NouvelleRecettePage() {
           <Input {...register('amount_fcfa', { required: true })} label="Montant (FCFA) *" type="number" placeholder="500000" error={errors.amount_fcfa ? 'Requis' : ''} />
           <div className="form-control">
             <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Date *</span></label>
-            <input type="date" {...register('date', { required: true })} className="input-base" />
+            <input type="date" {...register('date', { required: true })} className="w-full bg-bg-surface border border-border-base rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-accent text-text-primary" />
           </div>
           <div className="form-control">
             <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Source</span></label>
-            <select {...register('source')} className="select select-bordered bg-bg-surface border-border-base">
+            <select {...register('source')} className="w-full bg-bg-surface border border-border-base rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-accent text-text-primary">
               <option value="transport">Transport routier</option>
               <option value="logistique">Logistique / Manutention</option>
               <option value="douane">Frais de dédouanement</option>
@@ -86,26 +111,34 @@ export default function NouvelleRecettePage() {
           </div>
           <div className="form-control">
             <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Statut</span></label>
-            <select {...register('status')} className="select select-bordered bg-bg-surface border-border-base">
+            <select {...register('status')} className="w-full bg-bg-surface border border-border-base rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-accent text-text-primary">
               <option value="encaisse">Encaissé</option>
               <option value="en_attente">En attente de paiement</option>
             </select>
           </div>
-          <Input {...register('reference')} label="Référence (Facture/Reçu)" placeholder="FAC-2024-001" />
+          <Input {...register('reference')} label="Référence (Facture/Reçu)" placeholder="FAC-2026-001" />
         </div>
 
-        <div className="divider-dark my-2" />
+        <div className="border-t border-border-base my-2 pt-4" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="form-control">
             <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Client (Optionnel)</span></label>
-            <input type="text" {...register('client_id')} placeholder="ID du client" className="input-base text-sm" />
-            <p className="text-xs text-text-muted mt-1">L'ID du client si applicable</p>
+            <select {...register('client_id')} className="w-full bg-bg-surface border border-border-base rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-accent text-text-primary">
+              <option value="">-- Aucun client lié --</option>
+              {clients.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
           <div className="form-control">
             <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Voyage (Optionnel)</span></label>
-            <input type="text" {...register('trip_id')} placeholder="ID du voyage" className="input-base text-sm" />
-            <p className="text-xs text-text-muted mt-1">L'ID du voyage si applicable</p>
+            <select {...register('trip_id')} className="w-full bg-bg-surface border border-border-base rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-accent text-text-primary">
+              <option value="">-- Aucun voyage lié --</option>
+              {voyages.map((v: any) => (
+                <option key={v.id} value={v.id}>{v.reference} - {v.origin} vers {v.destination}</option>
+              ))}
+            </select>
           </div>
         </div>
 

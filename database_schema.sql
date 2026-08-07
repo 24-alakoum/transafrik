@@ -498,3 +498,24 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON containers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- 21. REVENUES (Recettes / Encaissements)
+CREATE TABLE IF NOT EXISTS revenues (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE NOT NULL,
+  trip_id UUID REFERENCES trips(id) ON DELETE SET NULL,
+  client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+  description TEXT NOT NULL,
+  amount_fcfa NUMERIC(15,2) NOT NULL DEFAULT 0,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  source TEXT DEFAULT 'transport',
+  status TEXT DEFAULT 'encaisse' CHECK (status IN ('encaisse', 'en_attente', 'annule')),
+  reference TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE revenues ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Company isolation for revenues" ON revenues
+  FOR ALL USING (company_id = public.auth_company_id());

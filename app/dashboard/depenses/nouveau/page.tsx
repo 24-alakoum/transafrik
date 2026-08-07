@@ -147,6 +147,8 @@ export default function NouvelleDepensePage() {
             <Input
               {...register('amount_fcfa')}
               type="number"
+              step="1"
+              min="1"
               label={`Montant (FCFA) *${isFraisVoyage ? ' — Auto-rempli depuis le voyage' : ''}`}
               error={errors.amount_fcfa?.message}
             />

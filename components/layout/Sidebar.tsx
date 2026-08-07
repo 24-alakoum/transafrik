@@ -77,10 +77,10 @@ export function Sidebar({ user: serverUser, company: serverCompany }: SidebarPro
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Overlay (mobile + desktop when sidebar open) */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -89,7 +89,7 @@ export function Sidebar({ user: serverUser, company: serverCompany }: SidebarPro
       <aside
         className={cn(
           "fixed top-0 left-0 z-50 h-screen w-64 bg-bg-card border-r border-border-base transition-transform duration-300 ease-in-out flex flex-col",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Logo */}

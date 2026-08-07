@@ -122,3 +122,35 @@ export async function updateCamionAction(id: string, formData: unknown) {
     return { success: false, error: { _global: 'Erreur inattendue' } }
   }
 }
+
+export async function updateStatusCamionAction(camionId: string, status: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: { _global: 'Non autorisé' } }
+
+    const response = await supabase.from('users').select('company_id').eq('id', user.id).single()
+    const userData = response.data as any
+
+    const { error } = await (supabase.from('trucks') as any)
+      .update({ status })
+      .eq('id', camionId)
+      .eq('company_id', userData?.company_id)
+
+    if (error) return { success: false, error: { _global: error.message } }
+
+    await logAudit({
+      userId: user.id,
+      companyId: userData?.company_id ?? '',
+      action: 'UPDATE_TRUCK',
+      resource: 'trucks',
+      resourceId: camionId,
+    })
+
+    revalidatePath('/dashboard/camions')
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: { _global: 'Erreur inattendue' } }
+  }
+}
+

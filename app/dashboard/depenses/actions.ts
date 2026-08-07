@@ -227,7 +227,7 @@ async function syncExpenseTotal(supabase: any, expenseId: string) {
 
   if (error) return
 
-  const total = (lines || []).reduce((sum: number, line: any) => sum + Number(line.total_fcfa || 0), 0)
+  const total = Math.round((lines || []).reduce((sum: number, line: any) => sum + Number(line.total_fcfa || 0), 0))
 
   if (lines && lines.length > 0) {
     await (supabase.from('expenses') as any)

@@ -5,8 +5,8 @@ export const ligneDepenseSchema = z.object({
   description: z.string().min(1, 'La description est requise').max(200),
   quantity: z.coerce.number().positive('La quantité doit être positive').default(1),
   unit: z.string().default('unité'),
-  unit_price_fcfa: z.coerce.number().min(0, 'Le prix unitaire doit être positif'),
-  total_fcfa: z.coerce.number().optional().nullable(),
+  unit_price_fcfa: z.coerce.number().min(0, 'Le prix unitaire doit être positif').transform((val) => Math.round(val)),
+  total_fcfa: z.coerce.number().optional().nullable().transform((val) => val != null ? Math.round(val) : val),
   sort_order: z.coerce.number().int().optional().nullable(),
 })
 

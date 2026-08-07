@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { DRIVER_STATUSES } from '@/lib/constants'
 import { ArrowLeft, Edit, Phone, Mail, MapPin, Calendar, CreditCard, ShieldAlert, Truck, User } from 'lucide-react'
 import Link from 'next/link'
+import { StatusChauffeurChanger } from './StatusChauffeurChanger'
 
 export default async function ChauffeurDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
@@ -86,6 +87,8 @@ export default async function ChauffeurDetailPage({ params }: { params: Promise<
               </div>
             )}
           </div>
+
+          <StatusChauffeurChanger chauffeurId={driver.id} currentStatus={driver.status} />
         </div>
 
         {/* Colonne Droite - Informations administratives */}

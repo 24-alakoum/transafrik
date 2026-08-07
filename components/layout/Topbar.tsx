@@ -1,13 +1,13 @@
 'use client'
 
-import { Bell, Menu } from 'lucide-react'
+import { Bell, Menu, X } from 'lucide-react'
 import { useUIStore } from '@/store/useUIStore'
 import { useNotifications } from '@/lib/queries/hooks'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 export function Topbar() {
-  const { toggleSidebar } = useUIStore()
+  const { toggleSidebar, sidebarOpen } = useUIStore()
   const { data } = useNotifications()
   const unreadCount = data?.data.filter((notification: any) => !notification.read_at).length ?? 0
   const pathname = usePathname()
@@ -24,15 +24,30 @@ export function Topbar() {
   const pageTitle = labels[segment] ?? segment
 
   return (
-    <header className="h-16 lg:h-20 bg-bg-base/80 backdrop-blur-md border-b border-border-base sticky top-0 z-30 px-4 sm:px-8 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <button 
+    <header className="h-16 bg-bg-base/90 backdrop-blur-md border-b border-border-base sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between transition-all duration-300">
+      <div className="flex items-center gap-3">
+        {/* Burger visible sur tous les écrans */}
+        <button
           onClick={toggleSidebar}
-          className="lg:hidden p-2 -ml-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-bg-raised"
+          className="p-2 -ml-1 text-text-secondary hover:text-text-primary rounded-lg hover:bg-bg-raised transition-all duration-200 flex items-center justify-center"
+          aria-label="Toggle sidebar"
         >
-          <Menu className="w-6 h-6" />
+          <span
+            className="relative w-5 h-5 flex items-center justify-center"
+            style={{ transition: 'transform 0.2s' }}
+          >
+            {sidebarOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </span>
         </button>
-        <h2 className="hidden sm:block text-base font-syne font-semibold text-text-primary">
+
+        {/* Séparateur vertical subtil */}
+        <div className="w-px h-5 bg-border-base hidden sm:block" />
+
+        <h2 className="hidden sm:block text-sm font-syne font-semibold text-text-primary tracking-wide">
           {pageTitle}
         </h2>
       </div>

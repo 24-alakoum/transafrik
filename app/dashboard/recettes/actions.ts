@@ -18,18 +18,33 @@ export async function createRecetteAction(formData: any) {
     if (!ctx?.company_id) return { error: 'Non autorisé' }
     const { supabase, company_id } = ctx
 
-    const dataToInsert = { ...formData, company_id }
-    
-    // Convertir les chaînes vides en null
-    if (!dataToInsert.client_id) delete dataToInsert.client_id
-    if (!dataToInsert.trip_id) delete dataToInsert.trip_id
+    const dataToInsert: any = {
+      company_id,
+      description: formData.description || 'Recette sans description',
+      amount_fcfa: Number(formData.amount_fcfa || 0),
+      date: formData.date || new Date().toISOString().split('T')[0],
+      source: formData.source || 'transport',
+      status: formData.status || 'encaisse',
+      reference: formData.reference || null,
+      client_id: formData.client_id || null,
+      trip_id: formData.trip_id || null,
+    }
+
+    // Nettoyer les chaînes vides pour éviter les erreurs de type UUID ou FK
+    if (dataToInsert.client_id === '') dataToInsert.client_id = null
+    if (dataToInsert.trip_id === '') dataToInsert.trip_id = null
+    if (dataToInsert.reference === '') dataToInsert.reference = null
 
     const { error } = await (supabase.from('revenues') as any)
       .insert(dataToInsert)
 
     if (error) {
+      console.error('[createRecetteAction error]', error)
       if (error.code === '42P01') {
-        return { error: "La table revenues n'existe pas dans la base de données Supabase. Veuillez l'ajouter." }
+        return { error: "La table 'revenues' n'existe pas encore dans votre base Supabase. Veuillez l'ajouter ou ré-exécuter le script database_schema.sql." }
+      }
+      if (error.code === '42703') {
+        return { error: `Colonne manquante dans le schéma Supabase : ${error.message}` }
       }
       return { error: error.message }
     }

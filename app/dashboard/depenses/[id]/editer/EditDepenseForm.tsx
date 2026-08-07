@@ -145,6 +145,8 @@ export function EditDepenseForm({ initialData, depenseId }: { initialData: any, 
             <Input
               {...register('amount_fcfa')}
               type="number"
+              step="1"
+              min="1"
               label={`Montant (FCFA) *${isFraisVoyage ? ' — Auto depuis voyage' : ''}`}
               error={errors.amount_fcfa?.message}
             />

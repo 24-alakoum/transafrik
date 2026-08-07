@@ -205,3 +205,32 @@ export async function updateChauffeurAction(chauffeurId: string, formData: unkno
     return { success: false, error: { _global: err?.message || 'Erreur inattendue lors de la modification du chauffeur' } }
   }
 }
+export async function updateStatusChauffeurAction(chauffeurId: string, status: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: { _global: 'Non autorisé' } }
+
+    const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
+
+    const { error } = await (supabase
+      .from('drivers') as any)
+      .update({ status })
+      .eq('id', chauffeurId)
+      .eq('company_id', userData?.company_id)
+
+    if (error) return { success: false, error: { _global: error.message } }
+
+    await logAudit({
+      userId: user.id,
+      companyId: userData?.company_id ?? '',
+      action: 'UPDATE_DRIVER',
+      resource: 'drivers',
+      resourceId: chauffeurId,
+    })
+
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: { _global: err?.message || 'Erreur inattendue' } }
+  }
+}

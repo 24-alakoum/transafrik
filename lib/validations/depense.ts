@@ -6,7 +6,8 @@ export const depenseSchema = z.object({
     .default('autre'),
   amount_fcfa: z.coerce
     .number()
-    .positive('Le montant doit être supérieur à 0'),
+    .positive('Le montant doit être supérieur à 0')
+    .transform((val) => Math.round(val)),
   date: z.string().min(1, 'La date est requise'),
   description: z.string().max(500).optional().nullable().or(z.literal('')),
   trip_id: z.string().uuid('Voyage invalide').or(z.literal('')).optional().nullable().transform(val => !val ? null : val),

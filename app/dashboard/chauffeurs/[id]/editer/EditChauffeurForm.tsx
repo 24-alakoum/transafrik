@@ -76,7 +76,7 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-28">
       <div className="flex items-center gap-4">
         <Link href="/dashboard/chauffeurs">
           <Button variant="ghost" size="icon" className="rounded-full">
@@ -191,14 +191,22 @@ export function EditChauffeurForm({ initialData, chauffeurId }: { initialData: a
           </div>
         </div>
 
-        <div className="flex justify-end gap-3">
-          <Link href="/dashboard/chauffeurs">
-            <Button variant="ghost" type="button">Annuler</Button>
-          </Link>
-          <Button type="submit" isLoading={isSubmitting}>
-            <Save className="w-4 h-4 mr-2" />
-            Enregistrer les modifications
-          </Button>
+        {/* Barre sticky de sauvegarde — toujours visible */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border-base bg-bg-card/95 backdrop-blur-sm shadow-lg lg:left-64">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+            <p className="text-sm text-text-secondary hidden sm:block">
+              Modifications non enregistrées
+            </p>
+            <div className="flex gap-3 ml-auto">
+              <Link href="/dashboard/chauffeurs">
+                <Button variant="ghost" type="button">Annuler</Button>
+              </Link>
+              <Button type="submit" isLoading={isSubmitting}>
+                <Save className="w-4 h-4 mr-2" />
+                Enregistrer les modifications
+              </Button>
+            </div>
+          </div>
         </div>
       </form>
     </div>

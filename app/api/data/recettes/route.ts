@@ -15,7 +15,7 @@ export async function GET() {
       .select(`
         *,
         clients(id, name),
-        trips:trips!revenues_trip_id_fkey(id, reference)
+        trips(id, reference)
       `)
       .eq('company_id', userData.company_id)
       .order('date', { ascending: false })
