@@ -5,7 +5,7 @@ export const depenseSchema = z.object({
     .enum(['carburant', 'maintenance', 'peage', 'salaire', 'assurance', 'amende', 'parking', 'frais_aller', 'frais_retour', 'frais_route', 'autre'])
     .default('autre'),
   amount_fcfa: z.coerce
-    .number({ invalid_type_error: 'Le montant doit être un nombre' })
+    .number()
     .positive('Le montant doit être supérieur à 0'),
   date: z.string().min(1, 'La date est requise'),
   description: z.string().max(500).optional().nullable().or(z.literal('')),

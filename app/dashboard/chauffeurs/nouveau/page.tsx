@@ -177,5 +177,3 @@ export default function NouveauChauffeurPage() {
     </div>
   )
 }
-
-}
