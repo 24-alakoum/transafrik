@@ -58,10 +58,15 @@ export default function BonsLivraisonPage() {
                     return (
                       <tr key={bon.id} className="hover:bg-bg-raised/50">
                         <td className="px-6 py-4">
-                          <Link href={`/dashboard/bons/${bon.id}`} className="font-semibold text-accent hover:underline flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            {bon.reference}
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            <Link href={`/dashboard/bons/${bon.id}`} className="font-semibold text-accent hover:underline flex items-center gap-2">
+                              <FileText className="w-4 h-4" />
+                              {bon.reference}
+                            </Link>
+                            {bon.is_external && (
+                              <Badge variant="purple" className="text-[10px] px-1.5 py-0.5">BL Tiers</Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-text-primary">{bon.trips?.clients?.name || '-'}</td>
                         <td className="px-6 py-4 text-text-secondary">{bon.trips?.reference || '-'}</td>

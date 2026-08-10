@@ -196,6 +196,7 @@ export default function BLDetailPage() {
           <div className="min-w-0">
             <h1 className="text-2xl font-syne font-bold text-text-primary flex items-center gap-3">
               <Ship className="w-6 h-6 text-blue-400" /> {bl.reference}
+              {bl.is_external && <Badge variant="purple" className="text-xs">BL Tiers / Externe</Badge>}
             </h1>
             <p className="text-text-secondary mt-0.5">{bl.vessel_name} • {bl.port_of_discharge}</p>
           </div>

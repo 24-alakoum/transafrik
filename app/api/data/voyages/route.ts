@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('trips')
-      .select('*, clients(name), trucks(plate), drivers(full_name)', { count: 'exact' })
+      .select('*, clients(name), trucks(plate), drivers(full_name), expenses(amount_fcfa, category), revenues(amount_fcfa)', { count: 'exact' })
       .eq('company_id', userData.company_id)
 
     if (status && status !== 'all') {

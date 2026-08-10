@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'draft' | 'transit' | 'badge-maintenance' | 'badge-transit' | 'badge-late'
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'draft' | 'transit' | 'purple' | 'badge-maintenance' | 'badge-transit' | 'badge-late'
   customColorClass?: string
 }
 
@@ -16,6 +16,7 @@ function Badge({ className, variant = 'default', customColorClass, children, ...
     info: 'bg-info/15 text-info border-info/30',
     draft: 'bg-text-muted/15 text-text-muted border-text-muted/30',
     transit: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    purple: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
     'badge-maintenance': 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
     'badge-transit': 'bg-green-500/15 text-green-400 border-green-500/30',
     'badge-late': 'bg-red-500/15 text-red-400 border-red-500/30',

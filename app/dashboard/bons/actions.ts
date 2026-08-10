@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit'
 
 // Server Action for sequential invoice numbering and creation
-export async function createBonLivraisonAction(tripId: string) {
+export async function createBonLivraisonAction(tripId: string, isExternal: boolean = false) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -14,11 +14,6 @@ export async function createBonLivraisonAction(tripId: string) {
     const companyId = userData?.company_id
     if (!companyId) return { success: false, error: 'Compagnie introuvable' }
 
-    // 1. Transaction atomique via Supabase RPC pour incrémenter et récupérer le compteur
-    // Note: Pour une implémentation sans RPC custom, on le fait séquentiellement mais avec risque de race condition
-    // La méthode recommandée avec Supabase est une fonction RPC `increment_invoice_counter(company_id)`
-    
-    // Fallback sans RPC:
     const { data: company } = (await supabase
       .from('companies')
       .select('invoice_prefix, invoice_counter')
@@ -39,23 +34,36 @@ export async function createBonLivraisonAction(tripId: string) {
     const taxAmount = (subtotal * taxRate) / 100
     const total = subtotal + taxAmount
 
-    // Create delivery note / invoice
-    const { data: bon, error } = (await supabase
+    const insertPayload: any = {
+      company_id: companyId,
+      trip_id: tripId,
+      created_by: user.id,
+      reference,
+      issued_date: new Date().toISOString().split('T')[0],
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      subtotal_fcfa: subtotal,
+      tax_rate: taxRate,
+      total_fcfa: total,
+      status: 'draft',
+      is_external: isExternal,
+    }
+
+    let { data: bon, error } = (await supabase
       .from('delivery_notes')
-      .insert({
-        company_id: companyId,
-        trip_id: tripId,
-        created_by: user.id,
-        reference,
-        issued_date: new Date().toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 jours
-        subtotal_fcfa: subtotal,
-        tax_rate: taxRate,
-        total_fcfa: total,
-        status: 'draft'
-      } as any)
+      .insert(insertPayload)
       .select('id')
       .single()) as any
+
+    if (error && error.message?.includes('is_external')) {
+      delete insertPayload.is_external
+      const retry = (await supabase
+        .from('delivery_notes')
+        .insert(insertPayload)
+        .select('id')
+        .single()) as any
+      bon = retry.data
+      error = retry.error
+    }
 
     if (error) return { success: false, error: error.message }
 

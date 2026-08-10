@@ -29,7 +29,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from('trips')
-      .select('*, clients(id, name, phone, email), trucks(id, plate, brand), drivers(id, full_name, phone)')
+      .select('*, clients(id, name, phone, email), trucks(id, plate, brand), drivers(id, full_name, phone), expenses(*), revenues(*), trip_lines(*)')
       .eq('id', id)
       .eq('company_id', userData.company_id)
       .single()

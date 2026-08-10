@@ -3,7 +3,8 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
-import { Ship, Plus, Trash2, Package, ArrowLeft } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Ship, Plus, Trash2, Package, ArrowLeft, User } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { toast } from 'sonner'
@@ -17,6 +18,18 @@ export default function NouveauBLPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(false)
 
+  const { data: clientsData } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await fetch('/api/data/clients')
+      if (!res.ok) return []
+      const json = await res.json()
+      return json.data || []
+    }
+  })
+
+  const clients = clientsData || []
+
   const { register, handleSubmit, control, formState: { errors } } = useForm({
     defaultValues: {
       reference: '',
@@ -27,6 +40,7 @@ export default function NouveauBLPage() {
       eta: '',
       arrival_date: '',
       client_id: '',
+      is_external: false,
       free_time_demurrage_days: 3,
       free_time_detention_days: 7,
       status: 'en_attente',
@@ -64,21 +78,32 @@ export default function NouveauBLPage() {
         </Link>
         <div className="min-w-0">
           <h1 className="text-2xl font-syne font-bold text-text-primary">Nouveau Connaissement</h1>
-          <p className="text-text-secondary mt-0.5">Enregistrez un nouveau BL avec ses conteneurs</p>
+          <p className="text-text-secondary mt-0.5">Enregistrez un nouveau BL avec ses conteneurs et son client</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Infos BL */}
         <div className="bg-bg-card rounded-2xl border border-border-base p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <Ship className="w-5 h-5 text-blue-400" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                <Ship className="w-5 h-5 text-blue-400" />
+              </div>
+              <h2 className="text-lg font-syne font-semibold text-text-primary">Informations du Connaissement</h2>
             </div>
-            <h2 className="text-lg font-syne font-semibold text-text-primary">Informations du Connaissement</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input {...register('reference', { required: true })} label="Référence BL *" placeholder="BL-2024-001" error={errors.reference ? 'Requis' : ''} />
+            <div className="form-control">
+              <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Client *</span></label>
+              <select {...register('client_id')} className="select select-bordered bg-bg-surface border-border-base w-full">
+                <option value="">-- Sélectionner un client --</option>
+                {clients.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
+                ))}
+              </select>
+            </div>
             <Input {...register('vessel_name')} label="Nom du navire" placeholder="MSC DIANA" />
             <Input {...register('voyage_number')} label="N° de voyage" placeholder="0VY01234" />
             <Input {...register('port_of_loading')} label="Port de chargement" placeholder="Shanghai, CN" />
@@ -92,6 +117,13 @@ export default function NouveauBLPage() {
                 <option value="disponible">Disponible</option>
                 <option value="livre">Livré</option>
                 <option value="termine">Terminé</option>
+              </select>
+            </div>
+            <div className="form-control">
+              <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Type de BL</span></label>
+              <select {...register('is_external')} className="select select-bordered bg-bg-surface border-border-base">
+                <option value="false">BL Interne (FlotAfrik)</option>
+                <option value="true">BL Externe / Tiers</option>
               </select>
             </div>
             <div className="form-control">

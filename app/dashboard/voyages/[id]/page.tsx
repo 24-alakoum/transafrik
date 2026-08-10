@@ -5,6 +5,7 @@ import { TRIP_STATUSES } from '@/lib/constants'
 import { formatFCFA, formatDate } from '@/lib/utils'
 import { MapPin, Calendar, Truck, User, Building2, Package } from 'lucide-react'
 import { VoyageHeaderActions } from '@/components/voyages/VoyageHeaderActions'
+import { BeneficeVoyageCard } from '@/components/voyages/BeneficeVoyageCard'
 
 export default async function VoyageDetailsPage({
   params,
@@ -20,7 +21,9 @@ export default async function VoyageDetailsPage({
       *,
       clients(name, phone, email),
       trucks(plate, brand),
-      drivers(full_name, phone)
+      drivers(full_name, phone),
+      expenses(*),
+      revenues(*)
     `)
     .eq('id', id)
     .single()) as any
@@ -51,6 +54,9 @@ export default async function VoyageDetailsPage({
           currentStatus={trip.status}
         />
       </div>
+
+      {/* Card Bénéfice Voyage */}
+      <BeneficeVoyageCard trip={trip} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Colonne gauche (Infos) */}

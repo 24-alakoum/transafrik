@@ -40,6 +40,9 @@ export default async function BonDetailsPage({
               Facture {bon.reference}
             </h1>
             <Badge variant={statusInfo.color as any}>{statusInfo.label}</Badge>
+            {bon.is_external && (
+              <Badge variant="purple" className="text-xs">BL Tiers / Externe</Badge>
+            )}
           </div>
           <p className="text-text-secondary">
             Créée le {formatDate(bon.issued_date)} • Échéance : {bon.due_date ? formatDate(bon.due_date) : '-'}

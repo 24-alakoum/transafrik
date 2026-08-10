@@ -238,6 +238,7 @@ export default function VoyagesPage() {
                   >
                     Revenu {renderSortIcon('revenue_fcfa')}
                   </th>
+                  <th className="px-6 py-4">Bénéfice Net</th>
                   <th
                     className="px-6 py-4 cursor-pointer hover:text-text-primary transition-colors"
                     onClick={() => toggleSort('status')}
@@ -250,7 +251,7 @@ export default function VoyagesPage() {
               <tbody className="divide-y divide-border-base">
                 {!trips.length ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-text-muted">
+                    <td colSpan={9} className="px-6 py-12 text-center text-text-muted">
                       {search || status ? (
                         <div className="space-y-2">
                           <p>Aucun voyage ne correspond à vos critères de recherche.</p>
@@ -273,6 +274,11 @@ export default function VoyagesPage() {
                 ) : (
                   trips.map((trip: any) => {
                     const statusInfo = TRIP_STATUSES[trip.status as keyof typeof TRIP_STATUSES]
+                    const totalRec = Number(trip.revenue_fcfa || 0) + (trip.revenues || []).reduce((s: number, r: any) => s + Number(r.amount_fcfa || 0), 0)
+                    const totalChg = Number(trip.frais_aller_fcfa || 0) + Number(trip.frais_retour_fcfa || 0) + (trip.expenses || []).reduce((s: number, e: any) => s + Number(e.amount_fcfa || 0), 0)
+                    const netProfit = totalRec - totalChg
+                    const isProfit = netProfit >= 0
+
                     return (
                       <tr key={trip.id} className="hover:bg-bg-raised/50 transition-colors">
                         <td className="px-6 py-4">
@@ -303,6 +309,9 @@ export default function VoyagesPage() {
                         </td>
                         <td className="px-6 py-4 font-medium text-text-primary">
                           {formatFCFA(trip.revenue_fcfa)}
+                        </td>
+                        <td className={`px-6 py-4 font-bold text-xs ${isProfit ? 'text-success' : 'text-danger'}`}>
+                          {formatFCFA(netProfit)}
                         </td>
                         <td className="px-6 py-4">
                           <Badge variant={statusInfo?.color as any}>{statusInfo?.label || trip.status}</Badge>

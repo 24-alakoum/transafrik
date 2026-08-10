@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { TrendingUp, ArrowLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -13,6 +13,7 @@ import Link from 'next/link'
 
 export default function NouvelleRecettePage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isLoading, setIsLoading] = React.useState(false)
 
   // Charger la liste des clients et voyages
@@ -58,6 +59,8 @@ export default function NouvelleRecettePage() {
       const result = await createRecetteAction(data)
       if (result.success) {
         toast.success('Recette ajoutée avec succès')
+        queryClient.invalidateQueries({ queryKey: ['recettes'] })
+        queryClient.invalidateQueries({ queryKey: ['voyages'] })
         router.push('/dashboard/recettes')
       } else {
         toast.error(result.error || 'Erreur lors de l\'ajout')

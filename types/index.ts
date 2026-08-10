@@ -23,6 +23,7 @@ export type GpsLocation = Tables<'gps_locations'>
 export type Package = Tables<'packages'>
 export type MaintenanceAlert = Tables<'maintenance_alerts'>
 export type FuelLog = Tables<'fuel_logs'>
+export type Revenue = Tables<'revenues'>
 
 // ── Types enrichis GPS / Tracking ───────────────────
 export type TruckWithLastGPS = Truck & {

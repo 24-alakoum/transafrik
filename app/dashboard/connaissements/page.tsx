@@ -245,10 +245,13 @@ export default function ConnaissementsPage() {
                   return (
                     <tr key={bl.id} className={`hover:bg-bg-raised/50 transition-colors ${isUrgent ? 'bg-danger/5' : ''}`}>
                       <td className="px-6 py-4">
-                        <Link href={`/dashboard/connaissements/${bl.id}`} className="font-semibold text-accent hover:underline flex items-center gap-2">
-                          <Ship className="w-4 h-4 text-text-muted" />
-                          {bl.reference}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/dashboard/connaissements/${bl.id}`} className="font-semibold text-accent hover:underline flex items-center gap-2">
+                            <Ship className="w-4 h-4 text-text-muted" />
+                            {bl.reference}
+                          </Link>
+                          {bl.is_external && <Badge variant="purple" className="text-[10px] px-1.5 py-0.5">BL Tiers</Badge>}
+                        </div>
                         {bl.voyage_number && <p className="text-xs text-text-muted">Voy. {bl.voyage_number}</p>}
                       </td>
                       <td className="px-6 py-4">

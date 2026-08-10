@@ -951,6 +951,50 @@ export type Database = {
           updated_at?: string
         }
       }
+      revenues: {
+        Row: {
+          id: string
+          company_id: string
+          trip_id: string | null
+          client_id: string | null
+          description: string
+          amount_fcfa: number
+          date: string
+          source: string | null
+          status: string
+          reference: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          trip_id?: string | null
+          client_id?: string | null
+          description: string
+          amount_fcfa?: number
+          date?: string
+          source?: string | null
+          status?: string
+          reference?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          trip_id?: string | null
+          client_id?: string | null
+          description?: string
+          amount_fcfa?: number
+          date?: string
+          source?: string | null
+          status?: string
+          reference?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

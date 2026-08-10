@@ -34,6 +34,18 @@ export default function ModifierBLPage() {
 
   const bl = data?.data
 
+  const { data: clientsData } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await fetch('/api/data/clients')
+      if (!res.ok) return []
+      const json = await res.json()
+      return json.data || []
+    }
+  })
+
+  const clients = clientsData || []
+
   const { register, handleSubmit, control, formState: { errors }, reset } = useForm({
     defaultValues: {
       reference: '',
@@ -44,6 +56,7 @@ export default function ModifierBLPage() {
       eta: '',
       arrival_date: '',
       client_id: '',
+      is_external: false,
       free_time_demurrage_days: 3,
       free_time_detention_days: 7,
       status: 'en_attente',
@@ -63,6 +76,7 @@ export default function ModifierBLPage() {
         eta: bl.eta ? bl.eta.split('T')[0] : '',
         arrival_date: bl.arrival_date ? bl.arrival_date.split('T')[0] : '',
         client_id: bl.client_id || '',
+        is_external: bl.is_external || false,
         free_time_demurrage_days: bl.free_time_demurrage_days || 3,
         free_time_detention_days: bl.free_time_detention_days || 7,
         status: bl.status || 'en_attente',
@@ -132,6 +146,15 @@ export default function ModifierBLPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input {...register('reference', { required: true })} label="Référence BL *" placeholder="BL-2024-001" error={errors.reference ? 'Requis' : ''} />
+            <div className="form-control">
+              <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Client *</span></label>
+              <select {...register('client_id')} className="select select-bordered bg-bg-surface border-border-base w-full">
+                <option value="">-- Sélectionner un client --</option>
+                {clients.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
+                ))}
+              </select>
+            </div>
             <Input {...register('vessel_name')} label="Nom du navire" placeholder="MSC DIANA" />
             <Input {...register('voyage_number')} label="N° de voyage" placeholder="0VY01234" />
             <Input {...register('port_of_loading')} label="Port de chargement" placeholder="Shanghai, CN" />
@@ -145,6 +168,13 @@ export default function ModifierBLPage() {
                 <option value="disponible">Disponible</option>
                 <option value="livre">Livré</option>
                 <option value="termine">Terminé</option>
+              </select>
+            </div>
+            <div className="form-control">
+              <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Type de BL</span></label>
+              <select {...register('is_external')} className="select select-bordered bg-bg-surface border-border-base">
+                <option value="false">BL Interne (FlotAfrik)</option>
+                <option value="true">BL Externe / Tiers</option>
               </select>
             </div>
             <div className="form-control">
