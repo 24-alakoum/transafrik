@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { TrendingUp, TrendingDown, Truck, Map, Wallet, AlertCircle } from 'lucide-react'
+import { TrendingUp, TrendingDown, Truck, Map, Wallet, AlertCircle, Coins, BarChart3 } from 'lucide-react'
 import { cn, formatFCFA } from '@/lib/utils'
 
 export interface KpiData {
@@ -9,7 +9,7 @@ export interface KpiData {
   value: string | number
   change: number
   trend: 'up' | 'down' | 'neutral'
-  icon: 'wallet' | 'map' | 'truck' | 'alert'
+  icon: 'wallet' | 'map' | 'truck' | 'alert' | 'coins' | 'chart'
   isCurrency?: boolean
 }
 
@@ -18,11 +18,13 @@ const icons = {
   map: Map,
   truck: Truck,
   alert: AlertCircle,
+  coins: Coins,
+  chart: BarChart3,
 }
 
 export function KpiGrid({ data }: { data: KpiData[] }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
       {data.map((kpi, i) => {
         const Icon = icons[kpi.icon]
         const isPositive = kpi.trend === 'up'

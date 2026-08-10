@@ -35,24 +35,33 @@ export function BeneficeVoyageCard({ trip }: BeneficeVoyageCardProps) {
   const totalRecettes = baseRevenue + extraRevenuesSum
 
   // Charges calculation
-  const fraisAller = Number(trip.frais_aller_fcfa || 0)
-  const fraisRetour = Number(trip.frais_retour_fcfa || 0)
-  const baseFrais = fraisAller + fraisRetour
+  const fraisAllerPrevu = Number(trip.frais_aller_fcfa || 0)
+  const fraisRetourPrevu = Number(trip.frais_retour_fcfa || 0)
 
   // Group expenses by category
   const expensesList = trip.expenses || []
+  const fraisAllerExpenses = expensesList.filter(e => e.category === 'frais_aller')
+  const fraisRetourExpenses = expensesList.filter(e => e.category === 'frais_retour')
   const maintenanceExpenses = expensesList.filter(e => e.category === 'maintenance')
   const fuelPeageExpenses = expensesList.filter(e => ['carburant', 'peage', 'frais_route'].includes(e.category))
   const driverExpenses = expensesList.filter(e => e.category === 'salaire')
-  const otherExpenses = expensesList.filter(e => !['maintenance', 'carburant', 'peage', 'frais_route', 'salaire'].includes(e.category))
+  const otherExpenses = expensesList.filter(e => !['maintenance', 'carburant', 'peage', 'frais_route', 'salaire', 'frais_aller', 'frais_retour'].includes(e.category))
 
+  const totalFraisAllerExpenses = fraisAllerExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
+  const totalFraisRetourExpenses = fraisRetourExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalMaintenance = maintenanceExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalFuelPeage = fuelPeageExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalDriverSalary = driverExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalOthers = otherExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
 
-  const totalExpensesLinked = expensesList.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
-  const totalCharges = baseFrais + totalExpensesLinked
+  // Frais aller/retour: utiliser les dépenses enregistrées si elles existent, sinon les prévisions du voyage
+  const fraisAller = fraisAllerExpenses.length > 0 ? totalFraisAllerExpenses : fraisAllerPrevu
+  const fraisRetour = fraisRetourExpenses.length > 0 ? totalFraisRetourExpenses : fraisRetourPrevu
+  const baseFrais = fraisAller + fraisRetour
+
+  // Total des autres dépenses (hors frais aller/retour pour éviter le double comptage)
+  const totalOtherExpensesLinked = totalMaintenance + totalFuelPeage + totalDriverSalary + totalOthers
+  const totalCharges = baseFrais + totalOtherExpensesLinked
 
   // Benefice Net
   const beneficeNet = totalRecettes - totalCharges
@@ -138,11 +147,17 @@ export function BeneficeVoyageCard({ trip }: BeneficeVoyageCardProps) {
               {/* Frais aller / retour */}
               <div className="space-y-1">
                 <div className="font-semibold text-text-primary flex items-center gap-1.5">
-                  <Fuel className="w-3.5 h-3.5 text-warning" /> Frais de Route & Péages Aller-Retour Prévus
+                  <Fuel className="w-3.5 h-3.5 text-warning" /> Frais de Route Aller-Retour ({formatFCFA(baseFrais)})
                 </div>
                 <div className="pl-5 space-y-1 text-text-secondary">
-                  <div className="flex justify-between"><span>Frais aller (carburant, péage, frais route)</span><span>{formatFCFA(fraisAller)}</span></div>
-                  <div className="flex justify-between"><span>Frais retour (carburant, péage, retour)</span><span>{formatFCFA(fraisRetour)}</span></div>
+                  <div className="flex justify-between">
+                    <span>Frais aller {fraisAllerExpenses.length > 0 ? '(dépense enregistrée)' : '(prévisionnel)'}</span>
+                    <span>{formatFCFA(fraisAller)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Frais retour {fraisRetourExpenses.length > 0 ? '(dépense enregistrée)' : '(prévisionnel)'}</span>
+                    <span>{formatFCFA(fraisRetour)}</span>
+                  </div>
                 </div>
               </div>
 

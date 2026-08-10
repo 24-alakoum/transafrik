@@ -17,13 +17,30 @@ export default function DashboardPage() {
   // KPIs construits à partir des données réelles
   const kpis: KpiData[] = React.useMemo(() => {
     if (!data) return []
+    const benefit = data.totalBenefit ?? 0
     return [
       {
         title: 'Revenu total',
         value: data.totalRevenue,
         change: 0,
         trend: 'neutral' as const,
-        icon: 'wallet',
+        icon: 'wallet' as const,
+        isCurrency: true,
+      },
+      {
+        title: 'Dépenses totales',
+        value: data.totalExpenses ?? 0,
+        change: 0,
+        trend: 'neutral' as const,
+        icon: 'coins' as const,
+        isCurrency: true,
+      },
+      {
+        title: 'Bénéfice net',
+        value: benefit,
+        change: 0,
+        trend: (benefit > 0 ? 'up' : benefit < 0 ? 'down' : 'neutral') as const,
+        icon: 'chart' as const,
         isCurrency: true,
       },
       {
@@ -31,21 +48,21 @@ export default function DashboardPage() {
         value: data.activeTrips,
         change: 0,
         trend: 'neutral' as const,
-        icon: 'map',
+        icon: 'map' as const,
       },
       {
         title: 'Camions disponibles',
         value: data.activeTrucks,
         change: 0,
         trend: 'neutral' as const,
-        icon: 'truck',
+        icon: 'truck' as const,
       },
       {
         title: 'Total voyages',
         value: data.totalTrips,
         change: 0,
         trend: 'neutral' as const,
-        icon: 'alert',
+        icon: 'alert' as const,
       },
     ]
   }, [data])

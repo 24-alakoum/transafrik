@@ -30,6 +30,8 @@ export function useDashboard() {
       totalTrips: number
       activeTrucks: number
       totalRevenue: number
+      totalExpenses: number
+      totalBenefit: number
       activeTrips: number
       chartData: { month: string; revenue: number; expenses: number }[]
     }>('/api/data/dashboard'),

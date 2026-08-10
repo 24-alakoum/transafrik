@@ -30,6 +30,7 @@ export async function GET() {
       { data: recentTrips },
       { count: totalTrips },
       { count: activeTrucks },
+      { count: activeTripsCount },
       { data: revenueRaw },
       { data: expensesRaw },
     ] = await Promise.all([
@@ -41,6 +42,8 @@ export async function GET() {
         .limit(5) as any,
       supabase.from('trips').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
       supabase.from('trucks').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'available'),
+      // Voyages en cours (in_transit ou loading)
+      supabase.from('trips').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['in_transit', 'loading']),
       // Revenus des 7 derniers mois
       supabase
         .from('trips')
@@ -82,14 +85,17 @@ export async function GET() {
 
     // KPIs globaux
     const totalRevenue = (revenueRaw || []).reduce((s: number, t: any) => s + Number(t.revenue_fcfa || 0), 0)
-    const activeTrips = (recentTrips || []).filter((t: any) => t.status === 'in_progress').length
+    const totalExpenses = (expensesRaw || []).reduce((s: number, e: any) => s + Number(e.amount_fcfa || 0), 0)
+    const totalBenefit = totalRevenue - totalExpenses
 
     return NextResponse.json({
       recentTrips: recentTrips || [],
       totalTrips: totalTrips || 0,
       activeTrucks: activeTrucks || 0,
       totalRevenue,
-      activeTrips,
+      totalExpenses,
+      totalBenefit,
+      activeTrips: activeTripsCount || 0,
       chartData: months.map(({ label, revenue, expenses }) => ({ month: label, revenue, expenses })),
     })
   } catch (err: any) {

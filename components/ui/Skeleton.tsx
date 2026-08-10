@@ -15,8 +15,8 @@ function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
 /** Skeleton pour les cartes KPI du dashboard */
 export function KpiSkeleton() {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {Array.from({ length: 4 }).map((_, i) => (
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="bg-bg-card rounded-2xl border border-border-base p-5 space-y-3">
           <div className="flex items-center justify-between">
             <Skeleton className="h-4 w-24" />
