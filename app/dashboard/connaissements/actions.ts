@@ -57,7 +57,10 @@ export async function createBLAction(formData: any) {
         }))
       if (containersData.length > 0) {
         const { error: cError } = await (supabase.from('containers') as any).insert(containersData)
-        if (cError) console.error('[createBL] container error:', cError)
+        if (cError) {
+          console.error('[createBL] container error:', cError)
+          return { error: 'BL créé mais erreur conteneurs : ' + cError.message }
+        }
       }
     }
 
@@ -236,8 +239,9 @@ export async function updateFullBLAction(blId: string, formData: any) {
       .select('id')
       .eq('bl_id', blId)
       
+    const existingIds = (existingContainers || []).map((c: any) => c.id)
     const incomingIds = (containers || []).filter((c: any) => c.id).map((c: any) => c.id)
-    const toDelete = (existingContainers || []).filter((c: any) => !incomingIds.includes(c.id)).map((c: any) => c.id)
+    const toDelete = existingIds.filter((id: string) => !incomingIds.includes(id))
 
     if (toDelete.length > 0) {
       await (supabase.from('containers') as any).delete().in('id', toDelete)
@@ -254,10 +258,12 @@ export async function updateFullBLAction(blId: string, formData: any) {
           weight_kg: cData.weight_kg && !isNaN(parseFloat(cData.weight_kg)) ? parseFloat(cData.weight_kg) : null,
           updated_at: new Date().toISOString(),
         }
-        if (id && id.length > 20) { // Supabase UUID is 36 chars. react-hook-form ids might be different if accidentally registered.
-          await (supabase.from('containers') as any).update(payload).eq('id', id)
+        if (id && existingIds.includes(id)) {
+          const { error: updErr } = await (supabase.from('containers') as any).update(payload).eq('id', id)
+          if (updErr) return { error: 'Erreur modification conteneur : ' + updErr.message }
         } else {
-          await (supabase.from('containers') as any).insert([payload])
+          const { error: insErr } = await (supabase.from('containers') as any).insert([payload])
+          if (insErr) return { error: 'Erreur ajout conteneur : ' + insErr.message }
         }
       }
     }
