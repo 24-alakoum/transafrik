@@ -49,11 +49,11 @@ export async function createBLAction(formData: any) {
     if (containers?.length > 0) {
       const containersData = containers
         .filter((c: any) => c.container_number?.trim())
-        .map((c: any) => ({
+        .map(({ id, ...c }: any) => ({
           ...c,
           bl_id: bl.id,
           company_id,
-          weight_kg: c.weight_kg ? parseFloat(c.weight_kg) : null,
+          weight_kg: c.weight_kg && !isNaN(parseFloat(c.weight_kg)) ? parseFloat(c.weight_kg) : null,
         }))
       if (containersData.length > 0) {
         const { error: cError } = await (supabase.from('containers') as any).insert(containersData)
@@ -246,15 +246,16 @@ export async function updateFullBLAction(blId: string, formData: any) {
     if (containers?.length > 0) {
       for (const c of containers) {
         if (!c.container_number?.trim()) continue;
+        const { id, ...cData } = c;
         const payload = {
-          ...c,
+          ...cData,
           bl_id: blId,
           company_id,
-          weight_kg: c.weight_kg ? parseFloat(c.weight_kg) : null,
+          weight_kg: cData.weight_kg && !isNaN(parseFloat(cData.weight_kg)) ? parseFloat(cData.weight_kg) : null,
           updated_at: new Date().toISOString(),
         }
-        if (payload.id) {
-          await (supabase.from('containers') as any).update(payload).eq('id', payload.id)
+        if (id && id.length > 20) { // Supabase UUID is 36 chars. react-hook-form ids might be different if accidentally registered.
+          await (supabase.from('containers') as any).update(payload).eq('id', id)
         } else {
           await (supabase.from('containers') as any).insert([payload])
         }

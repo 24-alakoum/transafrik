@@ -154,8 +154,8 @@ export default function BLDetailPage() {
     </div>
   )
 
-  // Si le BL est terminé, livré, ou que tous les conteneurs sont retournés, les alertes sont résolues.
-  const isBLResolved = bl.status === 'termine' || bl.status === 'livre' || (bl.containers?.length > 0 && bl.containers.every((c: any) => c.status === 'retourne'))
+  // Si le BL est terminé ou que tous les conteneurs sont retournés, les alertes sont résolues.
+  const isBLResolved = bl.status === 'termine' || (bl.containers?.length > 0 && bl.containers.every((c: any) => c.status === 'retourne'))
 
   let demurrage: ReturnType<typeof getDaysInfo> = null
   if (!isBLResolved && bl.arrival_date) {
@@ -262,7 +262,7 @@ export default function BLDetailPage() {
             <p className={`text-xs mt-1 font-medium ${ demurrage.overdue ? 'text-danger' : demurrage.days <= 3 ? 'text-warning' : 'text-success'}`}>
               {demurrage.overdue ? `⚠ Dépassée de ${Math.abs(demurrage.days)}j` : `✓ ${demurrage.days}j restant(s)`}
             </p>
-          ) : <p className="text-xs text-text-muted mt-1">Date d'arrivée non renseignée</p>}
+          ) : <p className="text-xs text-text-muted mt-1">{!bl.arrival_date ? "Date d'arrivée non renseignée" : "Aucune surestarie en cours"}</p>}
         </div>
         <div className={`bg-bg-card rounded-2xl border p-5 ${
           detention ? (detention.overdue ? 'border-danger/40 bg-danger/5' : detention.days <= 3 ? 'border-warning/40 bg-warning/5' : 'border-border-base') : 'border-border-base'
@@ -273,7 +273,7 @@ export default function BLDetailPage() {
             <p className={`text-xs mt-1 font-medium ${ detention.overdue ? 'text-danger' : detention.days <= 3 ? 'text-warning' : 'text-success'}`}>
               {detention.overdue ? `⚠ Dépassée de ${Math.abs(detention.days)}j` : `✓ ${detention.days}j restant(s)`}
             </p>
-          ) : <p className="text-xs text-text-muted mt-1">Aucun conteneur retiré ou tous retournés</p>}
+          ) : <p className="text-xs text-text-muted mt-1">{!bl.containers?.some((c: any) => c.pickup_date || c.status === 'livre' || c.status === 'vide' || c.status === 'retourne') ? "Aucun conteneur retiré" : "Aucune détention en cours"}</p>}
         </div>
       </div>
 

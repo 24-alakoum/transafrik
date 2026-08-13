@@ -232,6 +232,7 @@ export default function ModifierBLPage() {
                   )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input type="hidden" {...register(`containers.${index}.id`)} />
                   <Input {...register(`containers.${index}.container_number`)} label="N° Conteneur" placeholder="MSCU1234567" />
                   <div className="form-control">
                     <label className="label pt-0"><span className="label-text text-text-secondary font-medium">Type</span></label>

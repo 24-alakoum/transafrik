@@ -14,7 +14,7 @@ export default async function ChauffeurDetailPage({ params }: { params: Promise<
 
   const { data: driver, error } = (await supabase
     .from('drivers')
-    .select('*, trucks(*)')
+    .select('*')
     .eq('id', resolvedParams.id)
     .single()) as any
 
