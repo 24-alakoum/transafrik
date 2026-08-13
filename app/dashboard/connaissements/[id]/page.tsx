@@ -154,30 +154,37 @@ export default function BLDetailPage() {
     </div>
   )
 
-  // Surestarie (Demurrage) begins at arrival_date. It stops at pickup_date.
-  // We find the worst case among containers.
-  let demurrage: ReturnType<typeof getDaysInfo> = null;
-  if (bl.arrival_date) {
-    if (!bl.containers?.length) {
-      demurrage = getDaysInfo(bl.arrival_date, bl.free_time_demurrage_days || 3, null);
-    } else {
-      for (const c of bl.containers) {
-        const info = getDaysInfo(bl.arrival_date, bl.free_time_demurrage_days || 3, c.pickup_date || null);
+  // Si le BL est terminé, livré, ou que tous les conteneurs sont retournés, les alertes sont résolues.
+  const isBLResolved = bl.status === 'termine' || bl.status === 'livre' || (bl.containers?.length > 0 && bl.containers.every((c: any) => c.status === 'retourne'))
+
+  let demurrage: ReturnType<typeof getDaysInfo> = null
+  if (!isBLResolved && bl.arrival_date) {
+    const activeDemurrageContainers = bl.containers?.length
+      ? bl.containers.filter((c: any) => c.status === 'en_cours' && !c.pickup_date)
+      : [null]
+
+    if (!bl.containers?.length || activeDemurrageContainers.length > 0) {
+      for (const c of (activeDemurrageContainers.length ? activeDemurrageContainers : [null])) {
+        const info = getDaysInfo(bl.arrival_date, bl.free_time_demurrage_days || 3, c?.pickup_date || null)
         if (info && (!demurrage || info.days < demurrage.days)) {
-          demurrage = info;
+          demurrage = info
         }
       }
     }
   }
 
-  // Detention begins at pickup_date. It stops at return_date.
-  let detention: ReturnType<typeof getDaysInfo> = null;
-  if (bl.containers?.length) {
-    for (const c of bl.containers) {
-      if (c.pickup_date) {
-        const info = getDaysInfo(c.pickup_date, bl.free_time_detention_days || 7, c.return_date || null);
+  let detention: ReturnType<typeof getDaysInfo> = null
+  if (!isBLResolved && bl.containers?.length) {
+    const activeDetentionContainers = bl.containers.filter((c: any) =>
+      c.status !== 'retourne' && (c.pickup_date || c.status === 'livre' || c.status === 'vide')
+    )
+
+    for (const c of activeDetentionContainers) {
+      const startDate = c.pickup_date || bl.arrival_date
+      if (startDate) {
+        const info = getDaysInfo(startDate, bl.free_time_detention_days || 7, c.return_date || null)
         if (info && (!detention || info.days < detention.days)) {
-          detention = info;
+          detention = info
         }
       }
     }

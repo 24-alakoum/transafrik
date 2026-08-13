@@ -213,11 +213,21 @@ export async function updateStatusChauffeurAction(chauffeurId: string, status: s
 
     const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
-    const { error } = await (supabase
+    let { error } = await (supabase
       .from('drivers') as any)
       .update({ status })
       .eq('id', chauffeurId)
       .eq('company_id', userData?.company_id)
+
+    if (error && error.message?.includes('status')) {
+      const fallbackStatus = status === 'on_leave' ? 'leave' : (status === 'leave' ? 'on_leave' : 'available')
+      const retry = await (supabase
+        .from('drivers') as any)
+        .update({ status: fallbackStatus })
+        .eq('id', chauffeurId)
+        .eq('company_id', userData?.company_id)
+      error = retry.error
+    }
 
     if (error) return { success: false, error: { _global: error.message } }
 

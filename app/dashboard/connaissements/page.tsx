@@ -77,33 +77,49 @@ export default function ConnaissementsPage() {
   // Rewrite getDaysRemaining to match the logic of [id]/page.tsx (Surestarie stops at pickup, Detention starts at pickup)
   // For the list view, we just show the worst case for demurrage and detention.
   function getBLDaysInfo(bl: any, freeDays: number, type: 'demurrage' | 'detention') {
+    // Si le BL est terminé ou livré, ou que tous les conteneurs sont retournés, les alertes sont résolues.
+    if (bl.status === 'termine' || bl.status === 'livre') return null
+    const containers = bl.containers || []
+    if (containers.length > 0 && containers.every((c: any) => c.status === 'retourne')) return null
+
     if (type === 'demurrage') {
-      if (!bl.arrival_date) return null;
-      if (!bl.containers?.length) return getDaysRemaining(bl.arrival_date, freeDays);
-      let worst: number | null = null;
-      for (const c of bl.containers) {
-        const endDate = c.pickup_date ? new Date(c.pickup_date) : new Date();
-        const start = new Date(bl.arrival_date);
-        const deadline = new Date(start);
-        deadline.setDate(deadline.getDate() + freeDays);
-        const diff = Math.ceil((deadline.getTime() - endDate.getTime()) / 86400000);
-        if (worst === null || diff < worst) worst = diff;
+      if (!bl.arrival_date) return null
+      // Surestarie s'applique aux conteneurs encore au port (non retirés / status en_cours)
+      const activeDemurrageContainers = containers.length > 0
+        ? containers.filter((c: any) => c.status === 'en_cours' && !c.pickup_date)
+        : [null]
+
+      if (containers.length > 0 && activeDemurrageContainers.length === 0) return null
+
+      let worst: number | null = null
+      for (const c of activeDemurrageContainers) {
+        const endDate = (c && c.pickup_date) ? new Date(c.pickup_date) : new Date()
+        const start = new Date(bl.arrival_date)
+        const deadline = new Date(start)
+        deadline.setDate(deadline.getDate() + freeDays)
+        const diff = Math.ceil((deadline.getTime() - endDate.getTime()) / 86400000)
+        if (worst === null || diff < worst) worst = diff
       }
-      return worst;
+      return worst
     } else {
-      if (!bl.containers?.length) return null;
-      let worst: number | null = null;
-      for (const c of bl.containers) {
-        if (c.pickup_date) {
-          const endDate = c.return_date ? new Date(c.return_date) : new Date();
-          const start = new Date(c.pickup_date);
-          const deadline = new Date(start);
-          deadline.setDate(deadline.getDate() + freeDays);
-          const diff = Math.ceil((deadline.getTime() - endDate.getTime()) / 86400000);
-          if (worst === null || diff < worst) worst = diff;
-        }
+      // Détention s'applique aux conteneurs retirés (livre / vide / pickup_date) mais NON retournés
+      const activeDetentionContainers = containers.filter((c: any) =>
+        c.status !== 'retourne' && (c.pickup_date || c.status === 'livre' || c.status === 'vide')
+      )
+
+      if (activeDetentionContainers.length === 0) return null
+
+      let worst: number | null = null
+      for (const c of activeDetentionContainers) {
+        const startDate = c.pickup_date || bl.arrival_date
+        if (!startDate) continue
+        const endDate = c.return_date ? new Date(c.return_date) : new Date()
+        const deadline = new Date(startDate)
+        deadline.setDate(deadline.getDate() + freeDays)
+        const diff = Math.ceil((deadline.getTime() - endDate.getTime()) / 86400000)
+        if (worst === null || diff < worst) worst = diff
       }
-      return worst;
+      return worst
     }
   }
 

@@ -8,6 +8,56 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { CardGridSkeleton } from '@/components/ui/Skeleton'
 import { DRIVER_STATUSES } from '@/lib/constants'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/queries/keys'
+import { updateStatusChauffeurAction } from './actions'
+import { toast } from 'sonner'
+
+function DriverStatusSelect({ driverId, currentStatus }: { driverId: string; currentStatus: string }) {
+  const queryClient = useQueryClient()
+  const router = useRouter()
+  const [updating, setUpdating] = React.useState(false)
+
+  const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = e.target.value
+    if (!newStatus || newStatus === currentStatus) return
+    setUpdating(true)
+    try {
+      const res = await updateStatusChauffeurAction(driverId, newStatus)
+      if (res.success) {
+        toast.success('Statut chauffeur mis à jour')
+        await queryClient.invalidateQueries({ queryKey: queryKeys.chauffeurs.all() })
+        await queryClient.invalidateQueries({ queryKey: ['chauffeurs'] })
+        router.refresh()
+      } else {
+        toast.error((res.error as any)?._global || 'Erreur de mise à jour')
+      }
+    } catch {
+      toast.error('Erreur inattendue')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const statusInfo = DRIVER_STATUSES[currentStatus as keyof typeof DRIVER_STATUSES] || { label: currentStatus || 'Inconnu', color: 'default' }
+
+  return (
+    <div className="relative inline-flex items-center">
+      <select
+        value={currentStatus}
+        disabled={updating}
+        onChange={handleStatusChange}
+        className="bg-transparent text-[10px] font-semibold font-mono border border-border-base rounded px-1.5 py-0.5 text-text-primary cursor-pointer hover:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+      >
+        {Object.entries(DRIVER_STATUSES).map(([key, info]) => (
+          <option key={key} value={key} className="bg-bg-card text-text-primary font-sans text-xs">
+            {info.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
 import { Plus, Phone, Mail, Search } from 'lucide-react'
 import { ChauffeurCardActions } from './ChauffeurCardActions'
 
@@ -102,7 +152,7 @@ export default function ChauffeursPage() {
                     <div>
                       <h3 className="text-lg font-syne font-bold text-text-primary leading-tight">{driver.full_name}</h3>
                       <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                        <Badge variant={statusInfo.color as any} className="text-[10px] px-1.5 py-0.5">{statusInfo.label}</Badge>
+                        <DriverStatusSelect driverId={driver.id} currentStatus={driver.status} />
                         {driver.trucks && (
                           <span className="text-[10px] text-text-secondary font-medium px-1.5 py-0.5 bg-bg-raised rounded">
                             {driver.trucks.plate}

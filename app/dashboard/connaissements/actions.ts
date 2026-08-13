@@ -25,11 +25,24 @@ export async function createBLAction(formData: any) {
     if (blData.client_id === '') delete blData.client_id
     if (blData.eta === '') delete blData.eta
     if (blData.arrival_date === '') delete blData.arrival_date
+    if (blData.is_external !== undefined) {
+      blData.is_external = blData.is_external === 'true' || blData.is_external === true
+    }
 
-    const { data: bl, error: blError } = await (supabase.from('bills_of_lading') as any)
+    let { data: bl, error: blError } = await (supabase.from('bills_of_lading') as any)
       .insert({ ...blData, company_id })
       .select('id')
       .single()
+
+    if (blError && blError.message?.includes('is_external')) {
+      delete blData.is_external
+      const retry = await (supabase.from('bills_of_lading') as any)
+        .insert({ ...blData, company_id })
+        .select('id')
+        .single()
+      bl = retry.data
+      blError = retry.error
+    }
 
     if (blError) return { error: blError.message }
 
@@ -173,10 +186,21 @@ export async function updateFullBLAction(blId: string, formData: any) {
     if (blData.arrival_date === '') blData.arrival_date = null
     if (blData.created_at === '') delete blData.created_at
     if (blData.id) delete blData.id
+    if (blData.is_external !== undefined) {
+      blData.is_external = blData.is_external === 'true' || blData.is_external === true
+    }
 
-    const { error: blError } = await (supabase.from('bills_of_lading') as any)
+    let { error: blError } = await (supabase.from('bills_of_lading') as any)
       .update(blData)
       .eq('id', blId)
+
+    if (blError && blError.message?.includes('is_external')) {
+      delete blData.is_external
+      const retry = await (supabase.from('bills_of_lading') as any)
+        .update(blData)
+        .eq('id', blId)
+      blError = retry.error
+    }
 
     if (blError) return { error: blError.message }
 

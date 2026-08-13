@@ -54,14 +54,15 @@ export function BeneficeVoyageCard({ trip }: BeneficeVoyageCardProps) {
   const totalDriverSalary = driverExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalOthers = otherExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
 
-  // Frais aller/retour: utiliser les dépenses enregistrées si elles existent, sinon les prévisions du voyage
+  // Si des dépenses sont enregistrées dans la table depenses pour ce voyage, elles constituent la seule source de vérité pour les charges
+  const totalRecordedExpenses = expensesList.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
+  const totalCharges = expensesList.length > 0
+    ? totalRecordedExpenses
+    : (fraisAllerPrevu + fraisRetourPrevu)
+
   const fraisAller = fraisAllerExpenses.length > 0 ? totalFraisAllerExpenses : fraisAllerPrevu
   const fraisRetour = fraisRetourExpenses.length > 0 ? totalFraisRetourExpenses : fraisRetourPrevu
   const baseFrais = fraisAller + fraisRetour
-
-  // Total des autres dépenses (hors frais aller/retour pour éviter le double comptage)
-  const totalOtherExpensesLinked = totalMaintenance + totalFuelPeage + totalDriverSalary + totalOthers
-  const totalCharges = baseFrais + totalOtherExpensesLinked
 
   // Benefice Net
   const beneficeNet = totalRecettes - totalCharges

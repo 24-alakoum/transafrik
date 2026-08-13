@@ -7,10 +7,14 @@ import { DRIVER_STATUSES } from '@/lib/constants'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/queries/keys'
+
 const STATUS_COLORS: Record<string, string> = {
   available: 'bg-success/10 text-success border-success/30 hover:bg-success/20',
   on_trip: 'bg-accent/10 text-accent border-accent/30 hover:bg-accent/20',
   on_leave: 'bg-warning/10 text-warning border-warning/30 hover:bg-warning/20',
+  leave: 'bg-warning/10 text-warning border-warning/30 hover:bg-warning/20',
   inactive: 'bg-danger/10 text-danger border-danger/30 hover:bg-danger/20',
 }
 
@@ -22,6 +26,7 @@ export function StatusChauffeurChanger({
   currentStatus: string
 }) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [pending, setPending] = React.useState<string | null>(null)
 
   const handleChange = async (newStatus: string) => {
@@ -31,6 +36,8 @@ export function StatusChauffeurChanger({
       const result = await updateStatusChauffeurAction(chauffeurId, newStatus)
       if (result.success) {
         toast.success('Statut mis à jour')
+        queryClient.invalidateQueries({ queryKey: queryKeys.chauffeurs.all() })
+        queryClient.invalidateQueries({ queryKey: ['chauffeurs'] })
         router.refresh()
       } else {
         toast.error((result.error as any)?._global || 'Erreur lors de la mise à jour')

@@ -275,7 +275,11 @@ export default function VoyagesPage() {
                   trips.map((trip: any) => {
                     const statusInfo = TRIP_STATUSES[trip.status as keyof typeof TRIP_STATUSES]
                     const totalRec = Number(trip.revenue_fcfa || 0) + (trip.revenues || []).reduce((s: number, r: any) => s + Number(r.amount_fcfa || 0), 0)
-                    const totalChg = Number(trip.frais_aller_fcfa || 0) + Number(trip.frais_retour_fcfa || 0) + (trip.expenses || []).reduce((s: number, e: any) => s + Number(e.amount_fcfa || 0), 0)
+                    const tripExpenses = trip.expenses || []
+                    const recordedExpensesSum = tripExpenses.reduce((s: number, e: any) => s + Number(e.amount_fcfa || 0), 0)
+                    const totalChg = tripExpenses.length > 0 
+                      ? recordedExpensesSum 
+                      : (Number(trip.frais_aller_fcfa || 0) + Number(trip.frais_retour_fcfa || 0))
                     const netProfit = totalRec - totalChg
                     const isProfit = netProfit >= 0
 

@@ -42,8 +42,8 @@ export async function GET() {
         .limit(5) as any,
       supabase.from('trips').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
       supabase.from('trucks').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'available'),
-      // Voyages en cours (in_transit ou loading)
-      supabase.from('trips').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['in_transit', 'loading']),
+      // Voyages en cours (draft, planned, loading, in_transit)
+      supabase.from('trips').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['draft', 'planned', 'loading', 'in_transit']),
       // Revenus des 7 derniers mois
       supabase
         .from('trips')

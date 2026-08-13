@@ -39,7 +39,7 @@ export default function DashboardPage() {
         title: 'Bénéfice net',
         value: benefit,
         change: 0,
-        trend: (benefit > 0 ? 'up' : benefit < 0 ? 'down' : 'neutral') as const,
+        trend: benefit > 0 ? ('up' as const) : benefit < 0 ? ('down' as const) : ('neutral' as const),
         icon: 'chart' as const,
         isCurrency: true,
       },

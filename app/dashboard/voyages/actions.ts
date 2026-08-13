@@ -5,6 +5,40 @@ import { voyageSchema } from '@/lib/validations/voyage'
 import { logAudit } from '@/lib/audit'
 import { generateReference } from '@/lib/utils'
 
+async function syncDriverAndTruckStatus(
+  supabase: any,
+  companyId: string,
+  driverId: string | null | undefined,
+  truckId: string | null | undefined,
+  tripStatus: string,
+  oldDriverId?: string | null,
+  oldTruckId?: string | null
+) {
+  try {
+    const isFinished = ['delivered', 'cancelled'].includes(tripStatus)
+
+    if (driverId) {
+      const driverStatus = isFinished ? 'available' : 'on_trip'
+      await supabase.from('drivers').update({ status: driverStatus }).eq('id', driverId).eq('company_id', companyId)
+    }
+
+    if (oldDriverId && oldDriverId !== driverId) {
+      await supabase.from('drivers').update({ status: 'available' }).eq('id', oldDriverId).eq('company_id', companyId)
+    }
+
+    if (truckId) {
+      const truckStatus = isFinished ? 'available' : (tripStatus === 'loading' ? 'loading' : 'in_transit')
+      await supabase.from('trucks').update({ status: truckStatus }).eq('id', truckId).eq('company_id', companyId)
+    }
+
+    if (oldTruckId && oldTruckId !== truckId) {
+      await supabase.from('trucks').update({ status: 'available' }).eq('id', oldTruckId).eq('company_id', companyId)
+    }
+  } catch (e) {
+    console.error('[syncDriverAndTruckStatus Error]', e)
+  }
+}
+
 export async function createVoyageAction(formData: unknown) {
   try {
     const parsed = voyageSchema.safeParse(formData)
@@ -48,6 +82,15 @@ export async function createVoyageAction(formData: unknown) {
     if (error) {
       return { success: false, error: { _global: error.message } }
     }
+
+    // Synchroniser automatiquement le statut du chauffeur et du camion
+    await syncDriverAndTruckStatus(
+      supabase,
+      userData.company_id,
+      parsed.data.driver_id,
+      parsed.data.truck_id,
+      parsed.data.status || 'draft'
+    )
 
     // Synchronisation automatique dans la table `revenues` si un revenu est spécifié
     if (parsed.data.revenue_fcfa && Number(parsed.data.revenue_fcfa) > 0) {
@@ -107,6 +150,13 @@ export async function updateVoyageAction(id: string, formData: unknown) {
       return { success: false, error: { _global: 'Compagnie introuvable' } }
     }
 
+    // Récupérer l'ancien voyage pour ajuster si le chauffeur/camion a changé
+    const { data: oldTrip } = await supabase
+      .from('trips')
+      .select('driver_id, truck_id, status')
+      .eq('id', id)
+      .single()
+
     const { error } = await (supabase
       .from('trips') as any)
       .update({
@@ -119,6 +169,17 @@ export async function updateVoyageAction(id: string, formData: unknown) {
     if (error) {
       return { success: false, error: { _global: error.message } }
     }
+
+    // Synchroniser automatiquement les statuts chauffeur & camion
+    await syncDriverAndTruckStatus(
+      supabase,
+      userData.company_id,
+      parsed.data.driver_id,
+      parsed.data.truck_id,
+      parsed.data.status || oldTrip?.status || 'draft',
+      oldTrip?.driver_id,
+      oldTrip?.truck_id
+    )
 
     // Mettre à jour ou ajouter la recette associée
     if (parsed.data.revenue_fcfa !== undefined) {
@@ -194,6 +255,12 @@ export async function updateVoyageStatusAction(id: string, status: string) {
 
     if (!userData?.company_id) return { success: false, error: 'Compagnie introuvable' }
 
+    const { data: currentTrip } = await supabase
+      .from('trips')
+      .select('driver_id, truck_id')
+      .eq('id', id)
+      .single()
+
     const { error } = await (supabase
       .from('trips') as any)
       .update({ status, updated_at: new Date().toISOString() })
@@ -201,6 +268,16 @@ export async function updateVoyageStatusAction(id: string, status: string) {
       .eq('company_id', userData.company_id)
 
     if (error) return { success: false, error: error.message }
+
+    if (currentTrip) {
+      await syncDriverAndTruckStatus(
+        supabase,
+        userData.company_id,
+        currentTrip.driver_id,
+        currentTrip.truck_id,
+        status
+      )
+    }
 
     await logAudit({
       userId: user.id,
@@ -226,6 +303,12 @@ export async function deleteVoyageAction(id: string) {
 
     const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
+    const { data: currentTrip } = await supabase
+      .from('trips')
+      .select('driver_id, truck_id')
+      .eq('id', id)
+      .single()
+
     const { error } = (await supabase
       .from('trips')
       .delete()
@@ -233,6 +316,18 @@ export async function deleteVoyageAction(id: string) {
       .eq('company_id', userData?.company_id)) as any
 
     if (error) return { success: false, error: error.message }
+
+    if (currentTrip) {
+      await syncDriverAndTruckStatus(
+        supabase,
+        userData?.company_id,
+        null,
+        null,
+        'delivered',
+        currentTrip.driver_id,
+        currentTrip.truck_id
+      )
+    }
 
     // Nettoyer la recette liée
     try {
