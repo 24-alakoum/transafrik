@@ -119,6 +119,17 @@ export async function createVoyageAction(formData: unknown) {
       resourceId: trip?.id,
     })
 
+    // Notification automatique
+    try {
+      await supabase.from('notifications').insert({
+        company_id: userData.company_id,
+        type: 'trip',
+        title: `🚚 Nouveau Voyage — ${reference}`,
+        body: `Voyage ${reference} créé : ${parsed.data.origin} ➔ ${parsed.data.destination}.`,
+        read_at: null,
+      })
+    } catch (_) {}
+
     return { success: true, tripId: trip?.id }
   } catch (err) {
     console.error('[createVoyageAction]', err)
@@ -286,6 +297,21 @@ export async function updateVoyageStatusAction(id: string, status: string) {
       resource: 'trips',
       resourceId: id,
     })
+
+    // Notification automatique de changement de statut
+    const statusLabels: Record<string, string> = {
+      draft: 'Brouillon', planned: 'Planifié', loading: 'Chargement',
+      in_transit: 'En transit', delivered: 'Livré', cancelled: 'Annulé',
+    }
+    try {
+      await supabase.from('notifications').insert({
+        company_id: userData.company_id,
+        type: status === 'delivered' ? 'delivery' : 'trip',
+        title: `🔄 Voyage mis à jour — ${statusLabels[status] || status}`,
+        body: `Le voyage a été mis à jour au statut "${statusLabels[status] || status}".`,
+        read_at: null,
+      })
+    } catch (_) {}
 
     return { success: true }
   } catch (err) {

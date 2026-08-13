@@ -92,6 +92,18 @@ export async function createDepenseAction(formData: unknown) {
       resourceId: depenseData?.id,
     })
 
+    // Notification automatique dépense
+    const amountK = (Number(amount_fcfa) / 1000).toFixed(0)
+    try {
+      await supabase.from('notifications').insert({
+        company_id: userData?.company_id,
+        type: 'payment',
+        title: `💰 Nouvelle Dépense — ${amountK}k FCFA`,
+        body: `Dépense de ${Number(amount_fcfa).toLocaleString('fr-FR')} FCFA (${category || 'autre'}) enregistrée${description ? ` : ${description}` : ''}.`,
+        read_at: null,
+      })
+    } catch (_) {}
+
     return { success: true }
   } catch (err: any) {
     console.error('[createDepenseAction Exception]', err)

@@ -27,6 +27,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Company, User } from '@/types'
 
+import { useNotifications } from '@/lib/queries/hooks'
+
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['owner', 'admin', 'manager', 'secretary', 'driver', 'accountant', 'dispatcher', 'viewer'] },
   { name: 'Voyages', href: '/dashboard/voyages', icon: MapIcon, roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher'] },
@@ -44,7 +46,7 @@ const navItems = [
 const advancedNavItems = [
   { name: 'Tracking GPS', href: '/dashboard/tracking', icon: Radio, badge: null, roles: ['owner', 'admin', 'manager', 'secretary', 'driver'] },
   { name: 'Colis & QR Code', href: '/dashboard/colis', icon: Package, badge: null, roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher'] },
-  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, badge: '3', roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher', 'accountant', 'driver'] },
+  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, isNotification: true, roles: ['owner', 'admin', 'manager', 'secretary', 'dispatcher', 'accountant', 'driver'] },
   { name: 'IA & Analyses', href: '/dashboard/ia', icon: Brain, badge: null, roles: ['owner', 'admin', 'manager'] },
 ]
 
@@ -56,6 +58,8 @@ type SidebarProps = {
 export function Sidebar({ user: serverUser, company: serverCompany }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { data: notifData } = useNotifications()
+  const unreadCount = notifData?.data.filter((n: any) => !n.read_at).length ?? 0
   const { sidebarOpen, setSidebarOpen } = useUIStore()
   const { user: storedUser, company: storedCompany, logout } = useAuthStore()
   const user = serverUser ?? storedUser
@@ -140,9 +144,14 @@ export function Sidebar({ user: serverUser, company: serverCompany }: SidebarPro
               >
                 <item.icon className="w-5 h-5" />
                 {item.name}
-                {item.badge && (
+                {(item as any).isNotification && unreadCount > 0 && (
+                  <span className="ml-auto w-5 h-5 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+                {(item as any).badge && !(item as any).isNotification && (
                   <span className="ml-auto w-5 h-5 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center">
-                    {item.badge}
+                    {(item as any).badge}
                   </span>
                 )}
               </Link>

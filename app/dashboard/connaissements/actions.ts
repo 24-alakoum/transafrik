@@ -62,6 +62,18 @@ export async function createBLAction(formData: any) {
     }
 
     revalidatePath('/dashboard/connaissements')
+
+    // Notification automatique BL
+    try {
+      await (supabase.from('notifications') as any).insert({
+        company_id,
+        type: 'delivery',
+        title: `⛵ Nouveau BL — ${blData.reference || 'Nouveau'}`,
+        body: `Connaissement ${blData.reference || ''} (${blData.vessel_name || 'Navire'}) enregistré pour ${blData.port_of_discharge || 'destination'}.`,
+        read_at: null,
+      })
+    } catch (_) {}
+
     return { success: true, id: bl.id }
   } catch (e: any) {
     return { error: e.message }
@@ -106,6 +118,22 @@ export async function updateBLStatusAction(blId: string, status: string) {
       .eq('id', blId)
 
     if (error) return { error: error.message }
+
+    // Notification automatique changement statut BL
+    const blStatusLabels: Record<string, string> = {
+      en_attente: 'En attente', arrive: 'Arrivé', en_dedouanement: 'En dédouanement',
+      disponible: 'Disponible', livre: 'Livré', termine: 'Terminé',
+    }
+    try {
+      await (supabase.from('notifications') as any).insert({
+        company_id: ctx.company_id,
+        type: status === 'termine' || status === 'livre' ? 'delivery' : 'system',
+        title: `📦 BL mis à jour — ${blStatusLabels[status] || status}`,
+        body: `Un connaissement a été mis au statut "${blStatusLabels[status] || status}".`,
+        read_at: null,
+      })
+    } catch (_) {}
+
     revalidatePath('/dashboard/connaissements')
     return { success: true }
   } catch (e: any) {
