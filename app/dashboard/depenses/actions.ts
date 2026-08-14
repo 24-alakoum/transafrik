@@ -84,6 +84,10 @@ export async function createDepenseAction(formData: unknown) {
       return { success: false, error: { _global: error.message } }
     }
 
+    if (trip_id) {
+      await syncTripExpenses(supabase, trip_id)
+    }
+
     await logAudit({
       userId: user.id,
       companyId: userData?.company_id ?? '',
@@ -184,6 +188,10 @@ export async function updateDepenseAction(depenseId: string, formData: unknown) 
       return { success: false, error: { _global: error.message } }
     }
 
+    if (trip_id) {
+      await syncTripExpenses(supabase, trip_id)
+    }
+
     await logAudit({
       userId: user.id,
       companyId: userData?.company_id ?? '',
@@ -208,6 +216,12 @@ export async function deleteDepenseAction(depenseId: string) {
 
     const { data: userData } = (await supabase.from('users').select('company_id').eq('id', user.id).single()) as any
 
+    const { data: existingExp } = await supabase
+      .from('expenses')
+      .select('trip_id')
+      .eq('id', depenseId)
+      .single()
+
     const { error } = await (supabase
       .from('expenses') as any)
       .delete()
@@ -215,6 +229,10 @@ export async function deleteDepenseAction(depenseId: string) {
       .eq('company_id', userData?.company_id)
 
     if (error) return { success: false, error: error.message }
+
+    if (existingExp?.trip_id) {
+      await syncTripExpenses(supabase, existingExp.trip_id)
+    }
 
     await logAudit({
       userId: user.id,
@@ -228,6 +246,43 @@ export async function deleteDepenseAction(depenseId: string) {
   } catch (err: any) {
     console.error('[deleteDepenseAction Exception]', err)
     return { success: false, error: err?.message || 'Erreur inattendue' }
+  }
+}
+
+async function syncTripExpenses(supabase: any, tripId: string | null | undefined) {
+  if (!tripId) return
+  try {
+    const { data: expList } = await supabase
+      .from('expenses')
+      .select('category, amount_fcfa')
+      .eq('trip_id', tripId)
+
+    const list = expList || []
+    const fraisAllerExpenses = list.filter((e: any) => e.category === 'frais_aller')
+    const fraisRetourExpenses = list.filter((e: any) => e.category === 'frais_retour')
+
+    const updatePayload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    }
+
+    // Only sync frais_aller_fcfa if there are actual expenses recorded for category 'frais_aller'
+    if (fraisAllerExpenses.length > 0) {
+      updatePayload.frais_aller_fcfa = fraisAllerExpenses.reduce((sum: number, e: any) => sum + Number(e.amount_fcfa || 0), 0)
+    }
+
+    // Only sync frais_retour_fcfa if there are actual expenses recorded for category 'frais_retour'
+    if (fraisRetourExpenses.length > 0) {
+      updatePayload.frais_retour_fcfa = fraisRetourExpenses.reduce((sum: number, e: any) => sum + Number(e.amount_fcfa || 0), 0)
+    }
+
+    if (Object.keys(updatePayload).length > 1) {
+      await supabase
+        .from('trips')
+        .update(updatePayload)
+        .eq('id', tripId)
+    }
+  } catch (err) {
+    console.error('[syncTripExpenses Error]', err)
   }
 }
 

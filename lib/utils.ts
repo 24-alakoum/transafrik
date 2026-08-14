@@ -182,3 +182,57 @@ export function sanitizeFileName(name: string): string {
     .replace(/_+/g, '_')
     .slice(0, 100)
 }
+
+// ── Calculs financiers uniformisés (Voyage) ───────────────────────────
+/**
+ * Calcule de manière unifiée et sans doublon le chiffre d'affaires (revenu),
+ * les frais/charges et le bénéfice net d'un voyage.
+ */
+export function calculateTripFinancials(trip: {
+  revenue_fcfa?: number | null
+  frais_aller_fcfa?: number | null
+  frais_retour_fcfa?: number | null
+  expenses?: Array<{ category: string; amount_fcfa: number }> | null
+  revenues?: Array<{ amount_fcfa: number }> | null
+}) {
+  const baseRevenue = Number(trip?.revenue_fcfa || 0)
+  const revenuesList = trip?.revenues || []
+  const sumRevenues = revenuesList.reduce((sum, r) => sum + Number(r.amount_fcfa || 0), 0)
+
+  // Total Recettes : évite le doublon si revenue_fcfa est déjà synchronisé dans la table `revenues`
+  const totalRevenue = revenuesList.length > 0 ? Math.max(baseRevenue, sumRevenues) : baseRevenue
+
+  const fraisAllerPrevu = Number(trip?.frais_aller_fcfa || 0)
+  const fraisRetourPrevu = Number(trip?.frais_retour_fcfa || 0)
+
+  const expensesList = trip?.expenses || []
+
+  const fraisAllerExpensesSum = expensesList
+    .filter((e) => e.category === 'frais_aller')
+    .reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
+
+  const fraisRetourExpensesSum = expensesList
+    .filter((e) => e.category === 'frais_retour')
+    .reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
+
+  const effectiveFraisAller = fraisAllerExpensesSum > 0 ? fraisAllerExpensesSum : fraisAllerPrevu
+  const effectiveFraisRetour = fraisRetourExpensesSum > 0 ? fraisRetourExpensesSum : fraisRetourPrevu
+
+  const otherExpensesSum = expensesList
+    .filter((e) => e.category !== 'frais_aller' && e.category !== 'frais_retour')
+    .reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
+
+  const totalExpenses = effectiveFraisAller + effectiveFraisRetour + otherExpensesSum
+  const netProfit = totalRevenue - totalExpenses
+
+  return {
+    totalRevenue,
+    totalExpenses,
+    effectiveFraisAller,
+    effectiveFraisRetour,
+    otherExpensesSum,
+    netProfit,
+    isProfitable: netProfit >= 0,
+  }
+}
+

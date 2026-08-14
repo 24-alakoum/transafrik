@@ -111,6 +111,41 @@ export async function createVoyageAction(formData: unknown) {
       }
     }
 
+    // Synchronisation automatique dans la table `expenses` si frais_aller_fcfa ou frais_retour_fcfa spécifiés
+    if (parsed.data.frais_aller_fcfa && Number(parsed.data.frais_aller_fcfa) > 0) {
+      try {
+        await supabase.from('expenses').insert({
+          company_id: userData.company_id,
+          trip_id: trip.id,
+          truck_id: parsed.data.truck_id || null,
+          category: 'frais_aller',
+          description: `Frais aller voyage ${reference} (${parsed.data.origin} -> ${parsed.data.destination})`,
+          amount_fcfa: Number(parsed.data.frais_aller_fcfa),
+          date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+          created_by: user.id,
+        })
+      } catch (expErr) {
+        console.error('[createVoyageAction Sync Frais Aller Error]', expErr)
+      }
+    }
+
+    if (parsed.data.frais_retour_fcfa && Number(parsed.data.frais_retour_fcfa) > 0) {
+      try {
+        await supabase.from('expenses').insert({
+          company_id: userData.company_id,
+          trip_id: trip.id,
+          truck_id: parsed.data.truck_id || null,
+          category: 'frais_retour',
+          description: `Frais retour voyage ${reference} (${parsed.data.origin} -> ${parsed.data.destination})`,
+          amount_fcfa: Number(parsed.data.frais_retour_fcfa),
+          date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+          created_by: user.id,
+        })
+      } catch (expErr) {
+        console.error('[createVoyageAction Sync Frais Retour Error]', expErr)
+      }
+    }
+
     await logAudit({
       userId: user.id,
       companyId: userData.company_id,
@@ -236,6 +271,90 @@ export async function updateVoyageAction(id: string, formData: unknown) {
       }
     }
 
+    // Mettre à jour ou ajouter les dépenses frais_aller et frais_retour associées
+    if (parsed.data.frais_aller_fcfa !== undefined) {
+      try {
+        const amount = Number(parsed.data.frais_aller_fcfa || 0)
+        const { data: existingExp } = await supabase
+          .from('expenses')
+          .select('id')
+          .eq('trip_id', id)
+          .eq('category', 'frais_aller')
+          .maybeSingle()
+
+        if (existingExp) {
+          if (amount > 0) {
+            await supabase
+              .from('expenses')
+              .update({
+                amount_fcfa: amount,
+                truck_id: parsed.data.truck_id || null,
+                date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+                description: `Frais aller voyage (${parsed.data.origin} -> ${parsed.data.destination})`,
+              })
+              .eq('id', existingExp.id)
+          } else {
+            await supabase.from('expenses').delete().eq('id', existingExp.id)
+          }
+        } else if (amount > 0) {
+          await supabase.from('expenses').insert({
+            company_id: userData.company_id,
+            trip_id: id,
+            truck_id: parsed.data.truck_id || null,
+            category: 'frais_aller',
+            description: `Frais aller voyage (${parsed.data.origin} -> ${parsed.data.destination})`,
+            amount_fcfa: amount,
+            date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+            created_by: user.id,
+          })
+        }
+      } catch (expErr) {
+        console.error('[updateVoyageAction Sync Frais Aller Error]', expErr)
+      }
+    }
+
+    if (parsed.data.frais_retour_fcfa !== undefined) {
+      try {
+        const amount = Number(parsed.data.frais_retour_fcfa || 0)
+        const { data: existingExp } = await supabase
+          .from('expenses')
+          .select('id')
+          .eq('trip_id', id)
+          .eq('category', 'frais_retour')
+          .maybeSingle()
+
+        if (existingExp) {
+          if (amount > 0) {
+            await supabase
+              .from('expenses')
+              .update({
+                amount_fcfa: amount,
+                truck_id: parsed.data.truck_id || null,
+                date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+                description: `Frais retour voyage (${parsed.data.origin} -> ${parsed.data.destination})`,
+              })
+              .eq('id', existingExp.id)
+          } else {
+            await supabase.from('expenses').delete().eq('id', existingExp.id)
+          }
+        } else if (amount > 0) {
+          await supabase.from('expenses').insert({
+            company_id: userData.company_id,
+            trip_id: id,
+            truck_id: parsed.data.truck_id || null,
+            category: 'frais_retour',
+            description: `Frais retour voyage (${parsed.data.origin} -> ${parsed.data.destination})`,
+            amount_fcfa: amount,
+            date: parsed.data.departure_date || new Date().toISOString().split('T')[0],
+            created_by: user.id,
+          })
+        }
+      } catch (expErr) {
+        console.error('[updateVoyageAction Sync Frais Retour Error]', expErr)
+      }
+    }
+
+
     await logAudit({
       userId: user.id,
       companyId: userData.company_id,
@@ -355,9 +474,10 @@ export async function deleteVoyageAction(id: string) {
       )
     }
 
-    // Nettoyer la recette liée
+    // Nettoyer la recette et les dépenses liées
     try {
       await supabase.from('revenues').delete().eq('trip_id', id)
+      await supabase.from('expenses').delete().eq('trip_id', id)
     } catch {}
 
     await logAudit({

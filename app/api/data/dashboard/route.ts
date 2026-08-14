@@ -31,6 +31,7 @@ export async function GET() {
       { count: totalTrips },
       { count: activeTrucks },
       { count: activeTripsCount },
+      { data: allTripsRaw },
       { data: revenueRaw },
       { data: expensesRaw },
     ] = await Promise.all([
@@ -44,16 +45,17 @@ export async function GET() {
       supabase.from('trucks').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'available'),
       // Voyages en cours (draft, planned, loading, in_transit)
       supabase.from('trips').select('*', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['draft', 'planned', 'loading', 'in_transit']),
-      // Revenus des 7 derniers mois
       supabase
         .from('trips')
-        .select('revenue_fcfa, departure_date')
-        .eq('company_id', companyId)
-        .not('revenue_fcfa', 'is', null) as any,
-      // Dépenses des 7 derniers mois
+        .select('id, revenue_fcfa, frais_aller_fcfa, frais_retour_fcfa, departure_date')
+        .eq('company_id', companyId) as any,
+      supabase
+        .from('revenues')
+        .select('trip_id, amount_fcfa, date')
+        .eq('company_id', companyId) as any,
       supabase
         .from('expenses')
-        .select('amount_fcfa, date')
+        .select('trip_id, amount_fcfa, category, date')
         .eq('company_id', companyId) as any,
     ])
 
@@ -69,23 +71,60 @@ export async function GET() {
       }
     })
 
-    ;(revenueRaw || []).forEach((trip: any) => {
-      if (!trip.departure_date) return
-      const key = trip.departure_date.substring(0, 7)
-      const month = months.find(m => m.key === key)
-      if (month) month.revenue += Number(trip.revenue_fcfa || 0)
+    const tripsWithRevenues = new Set((revenueRaw || []).filter((r: any) => r.trip_id).map((r: any) => r.trip_id))
+    const tripsWithAllerExp = new Set((expensesRaw || []).filter((e: any) => e.trip_id && e.category === 'frais_aller').map((e: any) => e.trip_id))
+    const tripsWithRetourExp = new Set((expensesRaw || []).filter((e: any) => e.trip_id && e.category === 'frais_retour').map((e: any) => e.trip_id))
+
+    let totalRevenue = 0
+    ;(revenueRaw || []).forEach((r: any) => {
+      const amt = Number(r.amount_fcfa || 0)
+      totalRevenue += amt
+      if (r.date) {
+        const month = months.find((m) => m.key === r.date.substring(0, 7))
+        if (month) month.revenue += amt
+      }
     })
 
-    ;(expensesRaw || []).forEach((exp: any) => {
-      if (!exp.date) return
-      const key = exp.date.substring(0, 7)
-      const month = months.find(m => m.key === key)
-      if (month) month.expenses += Number(exp.amount_fcfa || 0)
+    ;(allTripsRaw || []).forEach((t: any) => {
+      if (!tripsWithRevenues.has(t.id)) {
+        const amt = Number(t.revenue_fcfa || 0)
+        totalRevenue += amt
+        if (t.departure_date && amt > 0) {
+          const month = months.find((m) => m.key === t.departure_date.substring(0, 7))
+          if (month) month.revenue += amt
+        }
+      }
     })
 
-    // KPIs globaux
-    const totalRevenue = (revenueRaw || []).reduce((s: number, t: any) => s + Number(t.revenue_fcfa || 0), 0)
-    const totalExpenses = (expensesRaw || []).reduce((s: number, e: any) => s + Number(e.amount_fcfa || 0), 0)
+    let totalExpenses = 0
+    ;(expensesRaw || []).forEach((e: any) => {
+      const amt = Number(e.amount_fcfa || 0)
+      totalExpenses += amt
+      if (e.date) {
+        const month = months.find((m) => m.key === e.date.substring(0, 7))
+        if (month) month.expenses += amt
+      }
+    })
+
+    ;(allTripsRaw || []).forEach((t: any) => {
+      if (!tripsWithAllerExp.has(t.id)) {
+        const amt = Number(t.frais_aller_fcfa || 0)
+        totalExpenses += amt
+        if (t.departure_date && amt > 0) {
+          const month = months.find((m) => m.key === t.departure_date.substring(0, 7))
+          if (month) month.expenses += amt
+        }
+      }
+      if (!tripsWithRetourExp.has(t.id)) {
+        const amt = Number(t.frais_retour_fcfa || 0)
+        totalExpenses += amt
+        if (t.departure_date && amt > 0) {
+          const month = months.find((m) => m.key === t.departure_date.substring(0, 7))
+          if (month) month.expenses += amt
+        }
+      }
+    })
+
     const totalBenefit = totalRevenue - totalExpenses
 
     return NextResponse.json({

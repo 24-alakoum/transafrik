@@ -70,10 +70,24 @@ export default function NouvelleDepensePage() {
     if (!selectedTripId || !['frais_aller', 'frais_retour'].includes(selectedCategory || '')) return
     const trip = trips.find((t: any) => t.id === selectedTripId)
     if (!trip) return
-    if (selectedCategory === 'frais_aller' && trip.frais_aller_fcfa) {
-      setValue('amount_fcfa', Number(trip.frais_aller_fcfa))
-    } else if (selectedCategory === 'frais_retour' && trip.frais_retour_fcfa) {
-      setValue('amount_fcfa', Number(trip.frais_retour_fcfa))
+
+    let targetAmount = 0
+    if (selectedCategory === 'frais_aller') {
+      targetAmount = Number(trip.frais_aller_fcfa || 0)
+      if (targetAmount === 0 && Array.isArray(trip.expenses)) {
+        const exp = trip.expenses.find((e: any) => e.category === 'frais_aller')
+        if (exp) targetAmount = Number(exp.amount_fcfa || 0)
+      }
+    } else if (selectedCategory === 'frais_retour') {
+      targetAmount = Number(trip.frais_retour_fcfa || 0)
+      if (targetAmount === 0 && Array.isArray(trip.expenses)) {
+        const exp = trip.expenses.find((e: any) => e.category === 'frais_retour')
+        if (exp) targetAmount = Number(exp.amount_fcfa || 0)
+      }
+    }
+
+    if (targetAmount > 0) {
+      setValue('amount_fcfa', targetAmount)
     }
   }, [selectedCategory, selectedTripId, trips, setValue])
 

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { TrendingUp, TrendingDown, ChevronDown, ChevronUp, DollarSign, Wrench, Fuel, ShieldAlert, Award, FileText } from 'lucide-react'
-import { formatFCFA } from '@/lib/utils'
+import { formatFCFA, calculateTripFinancials } from '@/lib/utils'
 
 interface BeneficeVoyageCardProps {
   trip: {
@@ -29,16 +29,19 @@ interface BeneficeVoyageCardProps {
 export function BeneficeVoyageCard({ trip }: BeneficeVoyageCardProps) {
   const [isOpen, setIsOpen] = React.useState(false)
 
-  // Recettes calculation
-  const baseRevenue = Number(trip.revenue_fcfa || 0)
-  const extraRevenuesSum = (trip.revenues || []).reduce((sum, r) => sum + Number(r.amount_fcfa || 0), 0)
-  const totalRecettes = baseRevenue + extraRevenuesSum
+  const {
+    totalRevenue: totalRecettes,
+    totalExpenses: totalCharges,
+    effectiveFraisAller: fraisAller,
+    effectiveFraisRetour: fraisRetour,
+    netProfit: beneficeNet,
+    isProfitable,
+  } = calculateTripFinancials(trip)
 
-  // Charges calculation
-  const fraisAllerPrevu = Number(trip.frais_aller_fcfa || 0)
-  const fraisRetourPrevu = Number(trip.frais_retour_fcfa || 0)
+  const baseRevenue = Number(trip?.revenue_fcfa || 0)
+  const baseFrais = fraisAller + fraisRetour
 
-  // Group expenses by category
+  // Group expenses by category for detailed breakdown
   const expensesList = trip.expenses || []
   const fraisAllerExpenses = expensesList.filter(e => e.category === 'frais_aller')
   const fraisRetourExpenses = expensesList.filter(e => e.category === 'frais_retour')
@@ -47,26 +50,14 @@ export function BeneficeVoyageCard({ trip }: BeneficeVoyageCardProps) {
   const driverExpenses = expensesList.filter(e => e.category === 'salaire')
   const otherExpenses = expensesList.filter(e => !['maintenance', 'carburant', 'peage', 'frais_route', 'salaire', 'frais_aller', 'frais_retour'].includes(e.category))
 
-  const totalFraisAllerExpenses = fraisAllerExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
-  const totalFraisRetourExpenses = fraisRetourExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalMaintenance = maintenanceExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalFuelPeage = fuelPeageExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalDriverSalary = driverExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
   const totalOthers = otherExpenses.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
 
-  // Si des dépenses sont enregistrées dans la table depenses pour ce voyage, elles constituent la seule source de vérité pour les charges
-  const totalRecordedExpenses = expensesList.reduce((sum, e) => sum + Number(e.amount_fcfa || 0), 0)
-  const totalCharges = expensesList.length > 0
-    ? totalRecordedExpenses
-    : (fraisAllerPrevu + fraisRetourPrevu)
-
-  const fraisAller = fraisAllerExpenses.length > 0 ? totalFraisAllerExpenses : fraisAllerPrevu
-  const fraisRetour = fraisRetourExpenses.length > 0 ? totalFraisRetourExpenses : fraisRetourPrevu
-  const baseFrais = fraisAller + fraisRetour
-
-  // Benefice Net
-  const beneficeNet = totalRecettes - totalCharges
-  const isProfitable = beneficeNet >= 0
+  // Filtering revenues to avoid displaying duplicate lines if revenues list contains the base revenue
+  const revenuesList = trip.revenues || []
+  const hasRevenuesTableEntries = revenuesList.length > 0
 
   return (
     <div className="bg-bg-card rounded-2xl border border-border-base p-6 shadow-sm space-y-4">
@@ -126,16 +117,19 @@ export function BeneficeVoyageCard({ trip }: BeneficeVoyageCardProps) {
               <DollarSign className="w-4 h-4 text-success" /> Detail Recettes ({formatFCFA(totalRecettes)})
             </h4>
             <div className="bg-bg-surface rounded-xl p-3 border border-border-base space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-border-base/50">
-                <span className="text-text-secondary">Prix de prestation du voyage</span>
-                <span className="font-semibold text-text-primary">{formatFCFA(baseRevenue)}</span>
-              </div>
-              {(trip.revenues || []).map(r => (
-                <div key={r.id} className="flex justify-between py-1 border-b border-border-base/50">
-                  <span className="text-text-secondary">{r.description || 'Recette additionnelle'} {r.date ? `(${r.date})` : ''}</span>
-                  <span className="font-semibold text-success">+{formatFCFA(r.amount_fcfa)}</span>
+              {hasRevenuesTableEntries ? (
+                revenuesList.map(r => (
+                  <div key={r.id} className="flex justify-between py-1 border-b border-border-base/50 last:border-b-0">
+                    <span className="text-text-secondary">{r.description || 'Recette voyage'} {r.date ? `(${r.date})` : ''}</span>
+                    <span className="font-semibold text-success">+{formatFCFA(r.amount_fcfa)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="flex justify-between py-1">
+                  <span className="text-text-secondary">Prix de prestation du voyage</span>
+                  <span className="font-semibold text-text-primary">{formatFCFA(baseRevenue)}</span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

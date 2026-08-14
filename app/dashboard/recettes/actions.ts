@@ -68,6 +68,10 @@ export async function createRecetteAction(formData: any) {
       return { error: error.message }
     }
 
+    if (dataToInsert.trip_id) {
+      await syncTripRevenue(supabase, dataToInsert.trip_id)
+    }
+
     revalidatePath('/dashboard/recettes')
     return { success: true }
   } catch (e: any) {
@@ -76,11 +80,38 @@ export async function createRecetteAction(formData: any) {
   }
 }
 
+async function syncTripRevenue(supabase: any, tripId: string | null | undefined) {
+  if (!tripId) return
+  try {
+    const { data: revList } = await supabase
+      .from('revenues')
+      .select('amount_fcfa')
+      .eq('trip_id', tripId)
+
+    const totalRev = (revList || []).reduce((sum: number, r: any) => sum + Number(r.amount_fcfa || 0), 0)
+
+    await supabase
+      .from('trips')
+      .update({
+        revenue_fcfa: totalRev,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', tripId)
+  } catch (err) {
+    console.error('[syncTripRevenue Error]', err)
+  }
+}
+
 export async function deleteRecetteAction(id: string) {
   try {
     const ctx = await getCompanyId()
     if (!ctx) return { error: 'Non autorisé' }
     const { supabase, company_id } = ctx
+
+    const { data: existingRev } = await (supabase.from('revenues') as any)
+      .select('trip_id')
+      .eq('id', id)
+      .maybeSingle()
 
     let { error } = await (supabase.from('revenues') as any)
       .delete()
@@ -101,9 +132,14 @@ export async function deleteRecetteAction(id: string) {
 
     if (error) return { error: error.message }
 
+    if (existingRev?.trip_id) {
+      await syncTripRevenue(supabase, existingRev.trip_id)
+    }
+
     revalidatePath('/dashboard/recettes')
     return { success: true }
   } catch (e: any) {
     return { error: e.message }
   }
 }
+

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { useVoyages } from '@/lib/queries/hooks'
-import { formatFCFA, formatDate } from '@/lib/utils'
+import { formatFCFA, formatDate, calculateTripFinancials } from '@/lib/utils'
 import { TRIP_STATUSES } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -274,14 +274,7 @@ export default function VoyagesPage() {
                 ) : (
                   trips.map((trip: any) => {
                     const statusInfo = TRIP_STATUSES[trip.status as keyof typeof TRIP_STATUSES]
-                    const totalRec = Number(trip.revenue_fcfa || 0) + (trip.revenues || []).reduce((s: number, r: any) => s + Number(r.amount_fcfa || 0), 0)
-                    const tripExpenses = trip.expenses || []
-                    const recordedExpensesSum = tripExpenses.reduce((s: number, e: any) => s + Number(e.amount_fcfa || 0), 0)
-                    const totalChg = tripExpenses.length > 0 
-                      ? recordedExpensesSum 
-                      : (Number(trip.frais_aller_fcfa || 0) + Number(trip.frais_retour_fcfa || 0))
-                    const netProfit = totalRec - totalChg
-                    const isProfit = netProfit >= 0
+                    const { totalRevenue: totalRec, netProfit, isProfitable: isProfit } = calculateTripFinancials(trip)
 
                     return (
                       <tr key={trip.id} className="hover:bg-bg-raised/50 transition-colors">
