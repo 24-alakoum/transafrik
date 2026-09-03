@@ -27,6 +27,7 @@ export async function createDepenseAction(formData: unknown) {
       receipt_url,
       receipt_size,
       is_reimbursed,
+      lines,
     } = parsed.data
 
     const payload: Record<string, any> = {
@@ -113,6 +114,31 @@ export async function createDepenseAction(formData: unknown) {
       return { success: false, error: { _global: error.message } }
     }
 
+    // Insertion automatique des lignes de dépenses si fournies
+    if (depenseData?.id && Array.isArray(lines) && lines.length > 0) {
+      const lineRows = lines.map((l: any, idx: number) => ({
+        expense_id: depenseData.id,
+        description: l.description || 'Article',
+        quantity: Number(l.quantity) || 1,
+        unit: l.unit || 'unité',
+        unit_price_fcfa: Number(l.unit_price_fcfa) || 0,
+        total_fcfa: (Number(l.quantity) || 1) * (Number(l.unit_price_fcfa) || 0),
+        sort_order: l.sort_order ?? idx,
+      }))
+
+      const { error: lineErr } = await supabase.from('expense_lines').insert(lineRows)
+      if (lineErr) {
+        console.error('[createDepenseAction lines insert error]', lineErr)
+      } else {
+        const linesTotal = Math.round(lineRows.reduce((sum, l) => sum + l.total_fcfa, 0))
+        if (linesTotal > 0) {
+          await (supabase.from('expenses') as any)
+            .update({ amount_fcfa: linesTotal })
+            .eq('id', depenseData.id)
+        }
+      }
+    }
+
     if (trip_id) {
       await syncTripExpenses(supabase, trip_id)
     }
@@ -166,6 +192,7 @@ export async function updateDepenseAction(depenseId: string, formData: unknown) 
       receipt_url,
       receipt_size,
       is_reimbursed,
+      lines,
     } = parsed.data
 
     const payload: Record<string, any> = {
@@ -215,6 +242,35 @@ export async function updateDepenseAction(depenseId: string, formData: unknown) 
     if (error) {
       console.error('[updateDepenseAction DB Error]', error)
       return { success: false, error: { _global: error.message } }
+    }
+
+    // Mise à jour des lignes de dépenses si fournies
+    if (Array.isArray(lines)) {
+      await supabase.from('expense_lines').delete().eq('expense_id', depenseId)
+
+      if (lines.length > 0) {
+        const lineRows = lines.map((l: any, idx: number) => ({
+          expense_id: depenseId,
+          description: l.description || 'Article',
+          quantity: Number(l.quantity) || 1,
+          unit: l.unit || 'unité',
+          unit_price_fcfa: Number(l.unit_price_fcfa) || 0,
+          total_fcfa: (Number(l.quantity) || 1) * (Number(l.unit_price_fcfa) || 0),
+          sort_order: l.sort_order ?? idx,
+        }))
+
+        const { error: lineErr } = await supabase.from('expense_lines').insert(lineRows)
+        if (lineErr) {
+          console.error('[updateDepenseAction lines insert error]', lineErr)
+        } else {
+          const linesTotal = Math.round(lineRows.reduce((sum, l) => sum + l.total_fcfa, 0))
+          if (linesTotal > 0) {
+            await (supabase.from('expenses') as any)
+              .update({ amount_fcfa: linesTotal })
+              .eq('id', depenseId)
+          }
+        }
+      }
     }
 
     if (trip_id) {

@@ -7,7 +7,12 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { formatFCFA } from '@/lib/utils'
 
-export function LignesForm() {
+interface LignesFormProps {
+  title?: string
+  onTotalChange?: (total: number) => void
+}
+
+export function LignesForm({ title = 'Lignes de facturation', onTotalChange }: LignesFormProps = {}) {
   const { control, register, watch } = useFormContext()
   const { fields, append, remove } = useFieldArray({
     control,
@@ -16,14 +21,22 @@ export function LignesForm() {
 
   const lines = watch('lines') || []
 
-  const total = lines.reduce((acc: number, line: any) => {
-    return acc + ((line.quantity || 0) * (line.unit_price_fcfa || 0))
-  }, 0)
+  const total = React.useMemo(() => {
+    return lines.reduce((acc: number, line: any) => {
+      return acc + ((Number(line?.quantity) || 0) * (Number(line?.unit_price_fcfa) || 0))
+    }, 0)
+  }, [lines])
+
+  React.useEffect(() => {
+    if (onTotalChange) {
+      onTotalChange(total)
+    }
+  }, [total, onTotalChange])
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-syne font-semibold text-text-primary">Lignes de facturation</h3>
+        <h3 className="font-syne font-semibold text-text-primary">{title}</h3>
         <Button 
           type="button" 
           variant="outline" 
