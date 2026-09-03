@@ -104,21 +104,34 @@ export default function FactureDepensePage() {
           </div>
         </div>
 
-        {/* Lignes de facture */}
+        {/* Lignes de facture / Articles */}
         <table className="w-full mb-12 text-left">
           <thead>
             <tr className="border-b-2 border-gray-800 text-gray-800">
-              <th className="py-3 px-2 font-bold uppercase text-sm">Description</th>
-              <th className="py-3 px-2 font-bold uppercase text-sm">Catégorie</th>
-              <th className="py-3 px-2 font-bold uppercase text-sm text-right">Montant</th>
+              <th className="py-3 px-2 font-bold uppercase text-xs">Description / Article</th>
+              <th className="py-3 px-2 font-bold uppercase text-xs text-center">Qté / Unité</th>
+              <th className="py-3 px-2 font-bold uppercase text-xs text-right">Prix Unitaire</th>
+              <th className="py-3 px-2 font-bold uppercase text-xs text-right">Montant Total</th>
             </tr>
           </thead>
-          <tbody>
-            <tr className="border-b border-gray-200">
-              <td className="py-4 px-2 text-gray-700">{expense.description || 'Dépense opérationnelle'}</td>
-              <td className="py-4 px-2 text-gray-700">{catInfo.label}</td>
-              <td className="py-4 px-2 text-right font-medium text-gray-800">{formatFCFA(expense.amount_fcfa)}</td>
-            </tr>
+          <tbody className="divide-y divide-gray-200">
+            {expense.expense_lines && expense.expense_lines.length > 0 ? (
+              expense.expense_lines.map((line: any, idx: number) => (
+                <tr key={line.id || idx}>
+                  <td className="py-3.5 px-2 text-gray-800 font-medium">{line.description}</td>
+                  <td className="py-3.5 px-2 text-center text-gray-600">{line.quantity} {line.unit}</td>
+                  <td className="py-3.5 px-2 text-right text-gray-600">{formatFCFA(line.unit_price_fcfa)}</td>
+                  <td className="py-3.5 px-2 text-right font-semibold text-gray-900">{formatFCFA(line.total_fcfa || (line.quantity * line.unit_price_fcfa))}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="py-4 px-2 text-gray-700">{expense.description || 'Dépense opérationnelle'}</td>
+                <td className="py-4 px-2 text-center text-gray-600">1 {catInfo.label}</td>
+                <td className="py-4 px-2 text-right text-gray-600">{formatFCFA(expense.amount_fcfa)}</td>
+                <td className="py-4 px-2 text-right font-medium text-gray-800">{formatFCFA(expense.amount_fcfa)}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 

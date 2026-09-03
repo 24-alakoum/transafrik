@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     const expenseId = new URL(request.url).searchParams.get('id')
     let query = supabase
       .from('expenses')
-      .select('*, trips(reference), trucks(plate)')
+      .select('*, trips(reference), trucks(plate), expense_lines(*)')
       .eq('company_id', userData.company_id)
       .order('date', { ascending: false }) as any
 
