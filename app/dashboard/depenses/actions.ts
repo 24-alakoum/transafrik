@@ -48,11 +48,40 @@ export async function createDepenseAction(formData: unknown) {
       payload.is_reimbursed = is_reimbursed
     }
 
-    let { data: depenseData, error } = (await supabase
-      .from('expenses')
-      .insert(payload as any)
-      .select('id')
-      .single()) as any
+    let depenseData: any = null
+    let error: any = null
+
+    // Si une dépense de frais aller ou retour pour ce voyage existe déjà, la mettre à jour pour éviter tout doublon
+    if (trip_id && (category === 'frais_aller' || category === 'frais_retour')) {
+      const { data: existingExp } = await supabase
+        .from('expenses')
+        .select('id')
+        .eq('company_id', userData?.company_id)
+        .eq('trip_id', trip_id)
+        .eq('category', category)
+        .maybeSingle()
+
+      if (existingExp) {
+        const retry = await (supabase
+          .from('expenses') as any)
+          .update(payload)
+          .eq('id', existingExp.id)
+          .select('id')
+          .single()
+        depenseData = retry.data
+        error = retry.error
+      }
+    }
+
+    if (!depenseData && !error) {
+      let retry = (await supabase
+        .from('expenses')
+        .insert(payload as any)
+        .select('id')
+        .single()) as any
+      depenseData = retry.data
+      error = retry.error
+    }
 
     // Handle missing optional columns gracefully (if DB table schema doesn't have is_reimbursed/receipt_size)
     if (error && error.message && (error.message.includes('is_reimbursed') || error.message.includes('receipt_size'))) {
@@ -263,24 +292,14 @@ async function syncTripExpenses(supabase: any, tripId: string | null | undefined
 
     const updatePayload: Record<string, any> = {
       updated_at: new Date().toISOString(),
+      frais_aller_fcfa: fraisAllerExpenses.reduce((sum: number, e: any) => sum + Number(e.amount_fcfa || 0), 0),
+      frais_retour_fcfa: fraisRetourExpenses.reduce((sum: number, e: any) => sum + Number(e.amount_fcfa || 0), 0),
     }
 
-    // Only sync frais_aller_fcfa if there are actual expenses recorded for category 'frais_aller'
-    if (fraisAllerExpenses.length > 0) {
-      updatePayload.frais_aller_fcfa = fraisAllerExpenses.reduce((sum: number, e: any) => sum + Number(e.amount_fcfa || 0), 0)
-    }
-
-    // Only sync frais_retour_fcfa if there are actual expenses recorded for category 'frais_retour'
-    if (fraisRetourExpenses.length > 0) {
-      updatePayload.frais_retour_fcfa = fraisRetourExpenses.reduce((sum: number, e: any) => sum + Number(e.amount_fcfa || 0), 0)
-    }
-
-    if (Object.keys(updatePayload).length > 1) {
-      await supabase
-        .from('trips')
-        .update(updatePayload)
-        .eq('id', tripId)
-    }
+    await supabase
+      .from('trips')
+      .update(updatePayload)
+      .eq('id', tripId)
   } catch (err) {
     console.error('[syncTripExpenses Error]', err)
   }

@@ -40,11 +40,24 @@ export default function FactureDepensePage() {
 
   const catInfo = EXPENSE_CATEGORIES[expense.category as keyof typeof EXPENSE_CATEGORIES] || { label: expense.category }
 
+  const handleBack = () => {
+    if (typeof window !== 'undefined') {
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        try {
+          window.close()
+        } catch (_) {}
+        router.push('/dashboard/depenses')
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-bg-base print:bg-white text-text-primary p-4 sm:p-8">
       {/* Contrôles d'impression - Masqués lors de l'impression */}
       <div className="max-w-3xl mx-auto mb-6 flex justify-between items-center print:hidden">
-        <Button variant="outline" onClick={() => router.back()}>
+        <Button variant="outline" onClick={handleBack}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Retour
         </Button>
         <Button onClick={() => window.print()}>

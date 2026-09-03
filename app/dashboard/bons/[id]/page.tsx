@@ -4,7 +4,8 @@ import { formatFCFA, formatDate } from '@/lib/utils'
 import { BON_STATUSES } from '@/lib/constants'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { FileDown, Send, CheckCircle2 } from 'lucide-react'
+import { FileDown, Send, CheckCircle2, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function BonDetailsPage({
   params,
@@ -34,19 +35,26 @@ export default async function BonDetailsPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl lg:text-3xl font-syne font-bold text-text-primary">
-              Facture {bon.reference}
-            </h1>
-            <Badge variant={statusInfo.color as any}>{statusInfo.label}</Badge>
-            {bon.is_external && (
-              <Badge variant="purple" className="text-xs">BL Tiers / Externe</Badge>
-            )}
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/bons">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-2xl lg:text-3xl font-syne font-bold text-text-primary">
+                Facture {bon.reference}
+              </h1>
+              <Badge variant={statusInfo.color as any}>{statusInfo.label}</Badge>
+              {bon.is_external && (
+                <Badge variant="purple" className="text-xs">BL Tiers / Externe</Badge>
+              )}
+            </div>
+            <p className="text-text-secondary">
+              Créée le {formatDate(bon.issued_date)} • Échéance : {bon.due_date ? formatDate(bon.due_date) : '-'}
+            </p>
           </div>
-          <p className="text-text-secondary">
-            Créée le {formatDate(bon.issued_date)} • Échéance : {bon.due_date ? formatDate(bon.due_date) : '-'}
-          </p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
